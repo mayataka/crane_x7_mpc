@@ -1,11 +1,11 @@
 # Publish all joint states
 joint_state_controller:
   type: "joint_state_controller/JointStateController"
-  publish_rate: 250
+  publish_rate: 10000
 
 arm_controller:
-  type: "position_controllers/JointTrajectoryController"
-  publish_rate: 250
+  type: "effort_controllers/JointGroupEffortController"
+  publish_rate: 1000
   joints:
     - crane_x7_shoulder_fixed_part_pan_joint
     - crane_x7_shoulder_revolute_part_tilt_joint
@@ -20,7 +20,7 @@ arm_controller:
 
 gripper_controller:
   type: "position_controllers/GripperActionController"
-  publish_rate: 250
+  publish_rate: 1000
   joint: crane_x7_gripper_finger_a_joint
   action_monitor_rate: 10
   state_publish_rate:  100

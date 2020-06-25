@@ -41,6 +41,14 @@
   <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
         args="-urdf -model crane_x7 -param robot_description -z 1.02"/>
 
+ <!-- Start Nodelet to launch MPC nodelet -->
+  <node pkg="nodelet" type="nodelet" args="manager"
+   name="mpc_nodelet_manager" output="screen" />
+
+  <node pkg="nodelet" type="nodelet" args="load crane_x7_mpc/mpc_nodelet mpc_nodelet_manager"
+    name="mpc_nodelet" output="screen">
+  </node>
+
   <!-- <include file="$(find crane_x7_moveit_config)/launch/demo.launch">
     <arg name="use_gazebo" default="true" />
     <arg name="fake_execution" default="false" />

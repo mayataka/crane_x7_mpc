@@ -4,6 +4,7 @@
 
   <group ns="/crane_x7">
     <rosparam file="$(find crane_x7_control)/config/crane_x7_fake_control.yaml" command="load"/>
+    <rosparam file="$(find crane_x7_mpc)/config/crane_x7_mpc.yaml" command="load"/>
     <param if="$(arg use_effort_gripper)" name="gripper_controller/type" value="effort_controllers/GripperActionController" />
 
     <node name="controller_manager"
@@ -12,6 +13,7 @@
         respawn="false"
         output="screen"
         args="joint_state_controller
+              mpc_arm_controller
               gripper_controller"/>
     <rosparam file="$(find crane_x7_control)/config/crane_x7_gazebo_control.yaml" command="load" />
   </group>
