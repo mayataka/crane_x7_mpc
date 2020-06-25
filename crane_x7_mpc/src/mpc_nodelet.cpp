@@ -4,13 +4,22 @@
 
 
 namespace cranex7mpc {
-MPCNodelet::MPCNodelet() {
-  ROS_INFO("SampleNodeletClass Constructor");
+
+MPCNodelet::MPCNodelet() 
+  : urdf_path_("/home/sotaro/ros1_ws/src/crane_x7_mpc/crane_x7_mpc/IDOCP/examples/cranex7/crane_x7_description/urdf/crane_x7.urdf"),
+    robot_(urdf_path_),
+    cost_(robot_),
+    constraints_(robot_),
+    mpc_(robot_, &cost_, &constraints_, T_, N_, num_proc_),
+    dimq_(robot_.dimq()),
+    dimv_(robot_.dimv()),
+    q_(Eigen::VectorXd::Zero(robot_.dimq())),
+    v_(Eigen::VectorXd::Zero(robot_.dimq())),
+    u_(Eigen::VectorXd::Zero(robot_.dimq())) {
 }
 
-void MPCNodelet::onInit()
-{
-    NODELET_INFO("SampleNodeletClass - %s", __FUNCTION__);
+
+void MPCNodelet::onInit() {
 }
 
 
@@ -36,26 +45,24 @@ bool MPCNodelet::init(hardware_interface::EffortJointInterface* hardware,
 
 
 void MPCNodelet::starting(const ros::Time& time) {
-  ROS_INFO("start controller!!");
 }
+
 
 void MPCNodelet::stopping(const ros::Time& time) {
-  ROS_INFO("stop controller!!");
 }
 
+
 void MPCNodelet::update(const ros::Time& time, const ros::Duration& period) {
-  // for (int i=0; i<dimq_; ++i) {
-  //   q_.coeffRef(i) = joint_effort_handlers_[i].getPosition();
-  //   v_.coeffRef(i) = joint_effort_handlers_[i].getVelocity();
-  // }
-  double q_[7], v_[7];
-  for (int i=0; i<7; ++i) {
-    q_[i] = joint_effort_handlers_[i].getPosition();
-    v_[i] = joint_effort_handlers_[i].getVelocity();
-    joint_effort_handlers_[i].setCommand(4);
+  for (int i=0; i<dimq_; ++i) {
+    q_.coeffRef(i) = joint_effort_handlers_[i].getPosition();
+    v_.coeffRef(i) = joint_effort_handlers_[i].getVelocity();
   }
-  // ROS_INFO("q =  [%lf %lf %lf %lf %lf %lf %lf]", q_[0], q_[1], q_[2], q_[3], q_[4], q_[5], q_[6]);
-  // ROS_INFO("v =  [%lf %lf %lf %lf %lf %lf %lf]", v_[0], v_[1], v_[2], v_[3], v_[4], v_[5], v_[6]);
+  const double t = time.toSec();
+  mpc_.updateSolution(t, q_, v_);
+  mpc_.getControlInput(u_);
+  for (int i=0; i<dimv_; ++i) {
+    joint_effort_handlers_[i].setCommand(u_[i]);
+  }
 }
 
 } // namespace crane_x7_mpc 
@@ -64,7 +71,4 @@ void MPCNodelet::update(const ros::Time& time, const ros::Duration& period) {
 PLUGINLIB_EXPORT_CLASS(cranex7mpc::MPCNodelet, nodelet::Nodelet)
 PLUGINLIB_EXPORT_CLASS(
     cranex7mpc::MPCNodelet, 
-    // controller_interface::Controller<hardware_interface::EffortJointInterface>)
     controller_interface::ControllerBase)
-// PLUGINLIB_DECLARE_CLASS(crane_x7_mpc, cranex7mpc::MPCNodelet, cranex7mpc::MPCNodelet, controller_interface::ControllerBase)
-// PLUGINLIB_DECLARE_CLASS(package_name, PositionController, controller_ns::PositionController, controller_interface::ControllerBase);

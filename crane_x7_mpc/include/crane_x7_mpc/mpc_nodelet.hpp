@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "pinocchio/fwd.hpp" // To avoid bug in BOOST_MPL_LIMIT_LIST_SIZE
 #include "ros/ros.h"
 #include "nodelet/nodelet.h"
 #include "controller_interface/controller.h"
@@ -11,8 +12,16 @@
 #include "std_msgs/Float64MultiArray.h"
 #include "sensor_msgs/JointState.h"
 
+#include "Eigen/Core"
+
+#include "ocp/mpc.hpp"
+#include "robot/robot.hpp"
+#include "manipulator/cost_function.hpp"
+#include "manipulator/constraints.hpp"
+
 
 namespace cranex7mpc {
+
 class MPCNodelet : public nodelet::Nodelet, 
                    public controller_interface::Controller
                           <hardware_interface::EffortJointInterface> {
@@ -27,13 +36,20 @@ private:
   virtual void onInit();
   void update(const ros::Time& time, const ros::Duration& period) override;
 
-  ros::NodeHandle node_handler_;
-  ros::Subscriber joint_state_subscriber_;
-  ros::Timer timer_;
   std::vector<hardware_interface::JointHandle> joint_effort_handlers_;
-  std_msgs::Float64MultiArray joint_efforts_;
 
+  static constexpr double T_ = 1;
+  static constexpr unsigned int N_ = 25;
+  static constexpr unsigned int num_proc_ = 2;
+  std::string urdf_path_;
+  idocp::Robot robot_;
+  idocp::manipulator::CostFunction cost_;
+  idocp::manipulator::Constraints constraints_;
+  idocp::MPC mpc_;
+  unsigned int dimq_, dimv_;
+  Eigen::VectorXd q_, v_, u_;
 };
+
 } // namespace cranex7mpc
 
 
