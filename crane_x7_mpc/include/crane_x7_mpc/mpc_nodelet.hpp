@@ -19,6 +19,8 @@
 #include "manipulator/cost_function.hpp"
 #include "manipulator/constraints.hpp"
 
+#include "crane_x7_mpc/SetGoalConfiguration.h"
+
 
 namespace cranex7mpc {
 
@@ -31,9 +33,12 @@ public:
             ros::NodeHandle &node_handler) override;
   void starting(const ros::Time& time) override;
   void stopping(const ros::Time& time) override;
+  bool setGoalConfiguration(
+      crane_x7_mpc::SetGoalConfiguration::Request& request, 
+      crane_x7_mpc::SetGoalConfiguration::Response& response);
 
 private:
-  virtual void onInit();
+  virtual void onInit() override;
   void update(const ros::Time& time, const ros::Duration& period) override;
 
   std::vector<hardware_interface::JointHandle> joint_effort_handlers_;
@@ -47,7 +52,10 @@ private:
   idocp::manipulator::Constraints constraints_;
   idocp::MPC mpc_;
   unsigned int dimq_, dimv_;
-  Eigen::VectorXd q_, v_, u_;
+  Eigen::VectorXd q_, v_, u_, q_ref_;
+
+  ros::NodeHandle node_handle_;
+  ros::ServiceServer service_server_;
 };
 
 } // namespace cranex7mpc

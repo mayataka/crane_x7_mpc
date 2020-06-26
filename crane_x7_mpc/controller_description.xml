@@ -1,7 +1,6 @@
 <library path="lib/libmpc_nodelet">
   <class name="crane_x7_mpc/mpc_nodelet" type="cranex7mpc::MPCNodelet"
    base_class_type="controller_interface::ControllerBase">
-   <!-- base_class_type="controller_interface::Controller<hardware_interface::EffortJointInterface>"> -->
 <description>
 </description>
 </class>

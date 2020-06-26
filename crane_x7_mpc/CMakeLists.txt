@@ -10,13 +10,26 @@ find_package(catkin REQUIRED COMPONENTS
   controller_interface
   hardware_interface
   std_msgs
+  message_generation
 )
+
+add_service_files(
+  FILES
+  SetGoalConfiguration.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
+
 
 catkin_package(
   LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS 
   roscpp 
   nodelet
+  message_runtime
 )
 
 # Build IDOCP

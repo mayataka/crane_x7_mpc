@@ -15,17 +15,29 @@ MPCNodelet::MPCNodelet()
     dimv_(robot_.dimv()),
     q_(Eigen::VectorXd::Zero(robot_.dimq())),
     v_(Eigen::VectorXd::Zero(robot_.dimq())),
-    u_(Eigen::VectorXd::Zero(robot_.dimq())) {
+    u_(Eigen::VectorXd::Zero(robot_.dimq())),
+    q_ref_(Eigen::VectorXd::Zero(robot_.dimq())) {
+  srand((unsigned int) time(0));
+  const Eigen::VectorXd q_ref = 1.5 * Eigen::VectorXd::Random(robot_.dimq());
+  cost_.set_q_ref(q_ref);
+  printf("q_ref = [%lf %lf %lf %lf %lf %lf %lf]\n", q_ref[0], q_ref[1], q_ref[2], q_ref[3], q_ref[4], q_ref[5], q_ref[6]);
+  ROS_INFO("Construct MPC nodelet!!");
 }
 
 
 void MPCNodelet::onInit() {
+  node_handle_ = getNodeHandle();
+  service_server_ = node_handle_.advertiseService(
+      "/crane_x7/mpc_nodelet/set_goal_configuration", 
+      &cranex7mpc::MPCNodelet::setGoalConfiguration, this);
+      // &MPCNodelet::setGoalConfiguration, this);
+  ROS_INFO("onInit MPC nodelet!!");
 }
 
 
 bool MPCNodelet::init(hardware_interface::EffortJointInterface* hardware, 
                       ros::NodeHandle &node_handler) {
-  ROS_INFO("init controller!!");
+  NODELET_INFO("init MPC controller!!");
   std::vector<std::string> joint_names = {
       "crane_x7_shoulder_fixed_part_pan_joint",
       "crane_x7_shoulder_revolute_part_tilt_joint",
@@ -45,10 +57,26 @@ bool MPCNodelet::init(hardware_interface::EffortJointInterface* hardware,
 
 
 void MPCNodelet::starting(const ros::Time& time) {
+  NODELET_INFO("start MPC controller!!");
 }
 
 
 void MPCNodelet::stopping(const ros::Time& time) {
+  NODELET_INFO("stop MPC controller!!");
+}
+
+
+bool MPCNodelet::setGoalConfiguration(
+    crane_x7_mpc::SetGoalConfiguration::Request& request, 
+    crane_x7_mpc::SetGoalConfiguration::Response& response) {
+  ROS_INFO("set goal configuration!!");
+  for (int i=0; i<dimq_; ++i) {
+    q_ref_.coeffRef(i) = request.goal_configuration[i];
+  }
+  cost_.set_q_ref(q_ref_);
+  mpc_.setCostFunction(&cost_);
+  response.success = true;
+  return true;
 }
 
 
@@ -61,7 +89,7 @@ void MPCNodelet::update(const ros::Time& time, const ros::Duration& period) {
   mpc_.updateSolution(t, q_, v_);
   mpc_.getControlInput(u_);
   for (int i=0; i<dimv_; ++i) {
-    joint_effort_handlers_[i].setCommand(u_[i]);
+    joint_effort_handlers_[i].setCommand(u_.coeff(i));
   }
 }
 
@@ -69,6 +97,5 @@ void MPCNodelet::update(const ros::Time& time, const ros::Duration& period) {
 
 
 PLUGINLIB_EXPORT_CLASS(cranex7mpc::MPCNodelet, nodelet::Nodelet)
-PLUGINLIB_EXPORT_CLASS(
-    cranex7mpc::MPCNodelet, 
-    controller_interface::ControllerBase)
+PLUGINLIB_EXPORT_CLASS(cranex7mpc::MPCNodelet, 
+                       controller_interface::ControllerBase)

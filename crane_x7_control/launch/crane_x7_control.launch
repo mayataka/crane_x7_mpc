@@ -9,16 +9,16 @@
     <rosparam file="$(find crane_x7_control)/config/crane_x7_control.yaml" command="load"/>
     <param name="dynamixel_port/port_name" value="$(arg port)"/>
 
+    <node name="crane_x7_control" pkg="crane_x7_control" type="crane_x7_control" output="screen" respawn="false">
+
     <node name="controller_manager"
         pkg="controller_manager"
         type="spawner" respawn="false"
         output="screen"
         args="joint_state_controller
-              arm_controller
-              gripper_controller"/>
-
-    <node name="crane_x7_control" pkg="crane_x7_control" type="crane_x7_control" output="screen" respawn="false">
-      <!-- <param name="config_ns" value="/crane_x7"/> -->
+              mpc_arm_controller
+              gripper_controller
+              robot_state_publisher"/>
     </node>
 
     <node name="robot_state_publisher" pkg="robot_state_publisher" 
