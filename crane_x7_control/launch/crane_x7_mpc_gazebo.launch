@@ -7,6 +7,13 @@
     <rosparam file="$(find crane_x7_control)/config/crane_x7_gazebo_mpc.yaml" command="load"/>
     <param if="$(arg use_effort_gripper)" name="gripper_controller/type" value="effort_controllers/GripperActionController" />
 
+    <node pkg="nodelet" type="nodelet" name="nodelet_manager" args="manager" output="screen">
+    <param name="num_worker_threads" value="1"/>
+  </node>
+  <node pkg="nodelet" type="nodelet" name="mpc_nodelet"
+        args="load crane_x7_mpc/mpc_controller nodelet_manager" >
+  </node>    
+
     <!-- <node name="controller_manager" -->
     <node name="controller_spawner"
           pkg="controller_manager"

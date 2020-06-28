@@ -6,8 +6,7 @@ set(CMAKE_CXX_STANDARD 11)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   pluginlib
-  controller_interface
-  hardware_interface
+  nodelet
   std_msgs
   message_generation
 )
@@ -28,6 +27,7 @@ catkin_package(
   CATKIN_DEPENDS 
   roscpp 
   message_runtime
+  nodelet
 )
 
 # Build IDOCP

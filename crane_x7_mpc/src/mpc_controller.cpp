@@ -17,41 +17,9 @@ MPCController::MPCController()
     v_(Eigen::VectorXd::Zero(robot_.dimq())),
     u_(Eigen::VectorXd::Zero(robot_.dimq())),
     q_ref_(Eigen::VectorXd::Zero(robot_.dimq())) {
-}
-
-
-bool MPCController::init(hardware_interface::EffortJointInterface* hardware, 
-                         ros::NodeHandle &node_handle) {
-  std::vector<std::string> joint_names = {
-      "crane_x7_shoulder_fixed_part_pan_joint",
-      "crane_x7_shoulder_revolute_part_tilt_joint",
-      "crane_x7_upper_arm_revolute_part_twist_joint",
-      "crane_x7_upper_arm_revolute_part_rotate_joint",
-      "crane_x7_lower_arm_fixed_part_joint",
-      "crane_x7_lower_arm_revolute_part_joint",
-      "crane_x7_wrist_joint"};
-  if (!joint_effort_handlers_.empty()) {
-    return false;
+  for (int i=0; i<robot_.dimv(); ++i) {
+    joint_efforts_.data.push_back(0);
   }
-  for (const auto& joint_name : joint_names) {
-    joint_effort_handlers_.push_back(hardware->getHandle(joint_name));
-  }
-  service_server_ = node_handle.advertiseService(
-      "/crane_x7/mpc_nodelet/set_goal_configuration", 
-      &cranex7mpc::MPCController::setGoalConfiguration, this);
-  return true;
-}
-
-
-void MPCController::starting(const ros::Time& time) {
-  q_ref_ = Eigen::VectorXd::Zero(robot_.dimq());
-  cost_.set_q_ref(q_ref_);
-  ROS_INFO("start MPC controller!!");
-}
-
-
-void MPCController::stopping(const ros::Time& time) {
-  ROS_INFO("stop MPC controller!!");
 }
 
 
@@ -68,22 +36,52 @@ bool MPCController::setGoalConfiguration(
 }
 
 
-void MPCController::update(const ros::Time& time, const ros::Duration& period) {
-  for (int i=0; i<dimq_; ++i) {
-    q_.coeffRef(i) = joint_effort_handlers_[i].getPosition();
-    v_.coeffRef(i) = joint_effort_handlers_[i].getVelocity();
-  }
-  const double t = time.toSec();
+void MPCController::onInit() {
+  node_handle_ = getNodeHandle();
+  service_server_ = node_handle_.advertiseService(
+      "/crane_x7/mpc_nodelet/set_goal_configuration", 
+      &cranex7mpc::MPCController::setGoalConfiguration, this);
+  joint_state_subscriber_ = node_handle_.subscribe(
+      "/crane_x7/joint_states", 10, 
+      &MPCController::subscribeJointState, this);
+  timer_ = node_handle_.createTimer(ros::Duration(0.001), &cranex7mpc::MPCController::updateControlInput, this);
+  joint_efforts_publisher_ 
+      = node_handle_.advertise<std_msgs::Float64MultiArray>("/mpc_arm_controller/command", 10);
+}
+
+
+void MPCController::subscribeJointState(
+    const sensor_msgs::JointState& joint_state_msg) {
+  q_.coeffRef(0) = joint_state_msg.position[3];
+  q_.coeffRef(1) = joint_state_msg.position[4];
+  q_.coeffRef(2) = joint_state_msg.position[6];
+  q_.coeffRef(3) = joint_state_msg.position[5];
+  q_.coeffRef(4) = joint_state_msg.position[1];
+  q_.coeffRef(5) = joint_state_msg.position[2];
+  q_.coeffRef(6) = joint_state_msg.position[7];
+  v_.coeffRef(0) = joint_state_msg.velocity[3];
+  v_.coeffRef(1) = joint_state_msg.velocity[4];
+  v_.coeffRef(2) = joint_state_msg.velocity[6];
+  v_.coeffRef(3) = joint_state_msg.velocity[5];
+  v_.coeffRef(4) = joint_state_msg.velocity[1];
+  v_.coeffRef(5) = joint_state_msg.velocity[2];
+  v_.coeffRef(6) = joint_state_msg.velocity[7];
+}
+
+
+void MPCController::updateControlInput(const ros::TimerEvent& time_event) {
+  // const double t = time_event.current_expected().toSec();
+  const double t = 0;
   ROS_INFO("KKT error = %lf", mpc_.KKTError(t, q_, v_));
   mpc_.updateSolution(t, q_, v_);
   mpc_.getControlInput(u_);
   for (int i=0; i<dimv_; ++i) {
-    joint_effort_handlers_[i].setCommand(u_.coeff(i));
+    joint_efforts_.data[i] = u_.coeff(i);
   }
+  joint_efforts_publisher_.publish(joint_efforts_);
 }
 
 } // namespace crane_x7_mpc 
 
 
-PLUGINLIB_EXPORT_CLASS(cranex7mpc::MPCController, 
-                       controller_interface::ControllerBase)
+PLUGINLIB_EXPORT_CLASS(cranex7mpc::MPCController, nodelet::Nodelet)

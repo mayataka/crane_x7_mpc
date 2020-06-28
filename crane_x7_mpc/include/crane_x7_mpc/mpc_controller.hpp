@@ -6,8 +6,7 @@
 
 #include "pinocchio/fwd.hpp" // To avoid bug in BOOST_MPL_LIMIT_LIST_SIZE
 #include "ros/ros.h"
-#include "controller_interface/controller.h"
-#include "hardware_interface/joint_command_interface.h"
+#include "nodelet/nodelet.h"
 #include "std_msgs/Float64MultiArray.h"
 #include "sensor_msgs/JointState.h"
 
@@ -23,23 +22,24 @@
 
 namespace cranex7mpc {
 
-class MPCController : public controller_interface::Controller
-                             <hardware_interface::EffortJointInterface> {
+class MPCController : public nodelet::Nodelet {
 public:
   MPCController();
-  bool init(hardware_interface::EffortJointInterface* hardware, 
-            ros::NodeHandle &node_handler) override;
-  void starting(const ros::Time& time) override;
-  void stopping(const ros::Time& time) override;
   bool setGoalConfiguration(
       crane_x7_mpc::SetGoalConfiguration::Request& request, 
       crane_x7_mpc::SetGoalConfiguration::Response& response);
 
 private:
-  void update(const ros::Time& time, const ros::Duration& period) override;
+  virtual void onInit() override;
+  void subscribeJointState(const sensor_msgs::JointState& joint_state_msg);
+  void updateControlInput(const ros::TimerEvent& time_event);
 
-  std::vector<hardware_interface::JointHandle> joint_effort_handlers_;
+  ros::NodeHandle node_handle_;
   ros::ServiceServer service_server_;
+  ros::Subscriber joint_state_subscriber_;
+  ros::Publisher joint_efforts_publisher_;
+  std_msgs::Float64MultiArray joint_efforts_;
+  ros::Timer timer_;
 
   static constexpr double T_ = 1;
   static constexpr unsigned int N_ = 25;

@@ -10,12 +10,13 @@
 
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>roscpp</build_depend>
+  <build_depend>nodelet</build_depend>
   <build_depend>message_generation</build_depend>
   <run_depend>roscpp</run_depend>
-  <run_depend>controller_interface</run_depend>
+  <run_depend>nodelet</run_depend>
   <run_depend>message_runtime</run_depend>
 
   <export>
-    <controller_interface plugin="${prefix}/controller_description.xml" />
+    <nodelet plugin="${prefix}/controller_description.xml" />
   </export>
 </package>
