@@ -12,7 +12,7 @@ joint_state_controller:
     - crane_x7_wrist_joint
 
 mpc_arm_controller:
-  type: "crane_x7_mpc/mpc_nodelet"
+  type: "crane_x7_mpc/mpc_controller"
   publish_rate: 1000
   joints:
     - crane_x7_shoulder_fixed_part_pan_joint

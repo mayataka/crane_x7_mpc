@@ -5,7 +5,6 @@ set(CMAKE_CXX_STANDARD 11)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  nodelet
   pluginlib
   controller_interface
   hardware_interface
@@ -28,7 +27,6 @@ catkin_package(
   LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS 
   roscpp 
-  nodelet
   message_runtime
 )
 
@@ -150,14 +148,13 @@ target_link_libraries(
   constraints_pdipm
 )
 
-# Build mpc_nodelet
+# Build mpc_controller
 add_library(
-  mpc_nodelet
-  src/mpc_nodelet.cpp 
-  src/mpc_nodelet.cpp
+  mpc_controller
+  src/mpc_controller.cpp
 )
 target_link_libraries(
-  mpc_nodelet
+  mpc_controller
   PRIVATE
   mpc
   idocp
@@ -166,7 +163,7 @@ target_link_libraries(
   ${catkin_LIBRARIES}
 )
 target_include_directories(
-  mpc_nodelet
+  mpc_controller
   PRIVATE
   ${PROJECT_SOURCE_DIR}/include/crane_x7_mpc
   ${catkin_INCLUDE_DIRS}
@@ -177,5 +174,5 @@ target_include_directories(
 )
 
 if(catkin_EXPORTED_LIBRARIES)
-  add_dependencies(mpc_nodelet ${catkin_EXPORTED_LIBRARIES})
+  add_dependencies(mpc_controller ${catkin_EXPORTED_LIBRARIES})
 endif()

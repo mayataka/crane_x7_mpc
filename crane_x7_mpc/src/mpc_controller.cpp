@@ -1,11 +1,11 @@
-#include "mpc_nodelet.hpp"
+#include "mpc_controller.hpp"
 
 #include "pluginlib/class_list_macros.h"
 
 
 namespace cranex7mpc {
 
-MPCNodelet::MPCNodelet() 
+MPCController::MPCController() 
   : urdf_path_("/home/sotaro/ros1_ws/src/crane_x7_mpc/crane_x7_mpc/IDOCP/examples/cranex7/crane_x7_description/urdf/crane_x7.urdf"),
     robot_(urdf_path_),
     cost_(robot_),
@@ -17,27 +17,11 @@ MPCNodelet::MPCNodelet()
     v_(Eigen::VectorXd::Zero(robot_.dimq())),
     u_(Eigen::VectorXd::Zero(robot_.dimq())),
     q_ref_(Eigen::VectorXd::Zero(robot_.dimq())) {
-  srand((unsigned int) time(0));
-  const Eigen::VectorXd q_ref = 1.5 * Eigen::VectorXd::Random(robot_.dimq());
-  cost_.set_q_ref(q_ref);
-  printf("q_ref = [%lf %lf %lf %lf %lf %lf %lf]\n", q_ref[0], q_ref[1], q_ref[2], q_ref[3], q_ref[4], q_ref[5], q_ref[6]);
-  ROS_INFO("Construct MPC nodelet!!");
 }
 
 
-void MPCNodelet::onInit() {
-  node_handle_ = getNodeHandle();
-  service_server_ = node_handle_.advertiseService(
-      "/crane_x7/mpc_nodelet/set_goal_configuration", 
-      &cranex7mpc::MPCNodelet::setGoalConfiguration, this);
-      // &MPCNodelet::setGoalConfiguration, this);
-  ROS_INFO("onInit MPC nodelet!!");
-}
-
-
-bool MPCNodelet::init(hardware_interface::EffortJointInterface* hardware, 
-                      ros::NodeHandle &node_handler) {
-  NODELET_INFO("init MPC controller!!");
+bool MPCController::init(hardware_interface::EffortJointInterface* hardware, 
+                         ros::NodeHandle &node_handle) {
   std::vector<std::string> joint_names = {
       "crane_x7_shoulder_fixed_part_pan_joint",
       "crane_x7_shoulder_revolute_part_tilt_joint",
@@ -52,21 +36,26 @@ bool MPCNodelet::init(hardware_interface::EffortJointInterface* hardware,
   for (const auto& joint_name : joint_names) {
     joint_effort_handlers_.push_back(hardware->getHandle(joint_name));
   }
+  service_server_ = node_handle.advertiseService(
+      "/crane_x7/mpc_nodelet/set_goal_configuration", 
+      &cranex7mpc::MPCController::setGoalConfiguration, this);
   return true;
 }
 
 
-void MPCNodelet::starting(const ros::Time& time) {
-  NODELET_INFO("start MPC controller!!");
+void MPCController::starting(const ros::Time& time) {
+  q_ref_ = Eigen::VectorXd::Zero(robot_.dimq());
+  cost_.set_q_ref(q_ref_);
+  ROS_INFO("start MPC controller!!");
 }
 
 
-void MPCNodelet::stopping(const ros::Time& time) {
-  NODELET_INFO("stop MPC controller!!");
+void MPCController::stopping(const ros::Time& time) {
+  ROS_INFO("stop MPC controller!!");
 }
 
 
-bool MPCNodelet::setGoalConfiguration(
+bool MPCController::setGoalConfiguration(
     crane_x7_mpc::SetGoalConfiguration::Request& request, 
     crane_x7_mpc::SetGoalConfiguration::Response& response) {
   ROS_INFO("set goal configuration!!");
@@ -74,18 +63,18 @@ bool MPCNodelet::setGoalConfiguration(
     q_ref_.coeffRef(i) = request.goal_configuration[i];
   }
   cost_.set_q_ref(q_ref_);
-  mpc_.setCostFunction(&cost_);
   response.success = true;
   return true;
 }
 
 
-void MPCNodelet::update(const ros::Time& time, const ros::Duration& period) {
+void MPCController::update(const ros::Time& time, const ros::Duration& period) {
   for (int i=0; i<dimq_; ++i) {
     q_.coeffRef(i) = joint_effort_handlers_[i].getPosition();
     v_.coeffRef(i) = joint_effort_handlers_[i].getVelocity();
   }
   const double t = time.toSec();
+  ROS_INFO("KKT error = %lf", mpc_.KKTError(t, q_, v_));
   mpc_.updateSolution(t, q_, v_);
   mpc_.getControlInput(u_);
   for (int i=0; i<dimv_; ++i) {
@@ -96,6 +85,5 @@ void MPCNodelet::update(const ros::Time& time, const ros::Duration& period) {
 } // namespace crane_x7_mpc 
 
 
-PLUGINLIB_EXPORT_CLASS(cranex7mpc::MPCNodelet, nodelet::Nodelet)
-PLUGINLIB_EXPORT_CLASS(cranex7mpc::MPCNodelet, 
+PLUGINLIB_EXPORT_CLASS(cranex7mpc::MPCController, 
                        controller_interface::ControllerBase)

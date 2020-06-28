@@ -1,7 +1,0 @@
-<library path="lib/libmpc_nodelet">
-  <class name="crane_x7_mpc/mpc_nodelet" type="cranex7mpc::MPCNodelet"
-   base_class_type="nodelet::Nodelet">
-<description>
-</description>
-</class>
-</library>
