@@ -17,6 +17,6 @@
   <run_depend>message_runtime</run_depend>
 
   <export>
-    <nodelet plugin="${prefix}/controller_description.xml" />
+    <nodelet plugin="${prefix}/nodelet_description.xml" />
   </export>
 </package>

@@ -1,12 +1,12 @@
-#include "mpc_controller.hpp"
+#include "mpc_nodelet.hpp"
 
 #include "pluginlib/class_list_macros.h"
 
 
 namespace cranex7mpc {
 
-MPCController::MPCController() 
-  : urdf_path_("/home/sotaro/ros1_ws/src/crane_x7_mpc/crane_x7_mpc/IDOCP/examples/cranex7/crane_x7_description/urdf/crane_x7.urdf"),
+MPCNodelet::MPCNodelet() 
+  : urdf_path_("/home/sotaro/catkin_ws/src/crane_x7_mpc/crane_x7_mpc/IDOCP/examples/cranex7/crane_x7_description/urdf/crane_x7.urdf"),
     robot_(urdf_path_),
     cost_(robot_),
     constraints_(robot_),
@@ -20,10 +20,12 @@ MPCController::MPCController()
   for (int i=0; i<robot_.dimv(); ++i) {
     joint_efforts_.data.push_back(0);
   }
+  q_ref_.fill(1);
+  cost_.set_q_ref(q_ref_);
 }
 
 
-bool MPCController::setGoalConfiguration(
+bool MPCNodelet::setGoalConfiguration(
     crane_x7_mpc::SetGoalConfiguration::Request& request, 
     crane_x7_mpc::SetGoalConfiguration::Response& response) {
   ROS_INFO("set goal configuration!!");
@@ -36,21 +38,24 @@ bool MPCController::setGoalConfiguration(
 }
 
 
-void MPCController::onInit() {
+void MPCNodelet::onInit() {
   node_handle_ = getNodeHandle();
   service_server_ = node_handle_.advertiseService(
       "/crane_x7/mpc_nodelet/set_goal_configuration", 
-      &cranex7mpc::MPCController::setGoalConfiguration, this);
+      &cranex7mpc::MPCNodelet::setGoalConfiguration, this);
   joint_state_subscriber_ = node_handle_.subscribe(
       "/crane_x7/joint_states", 10, 
-      &MPCController::subscribeJointState, this);
-  timer_ = node_handle_.createTimer(ros::Duration(0.001), &cranex7mpc::MPCController::updateControlInput, this);
+      &cranex7mpc::MPCNodelet::subscribeJointState, this);
+  timer_ = node_handle_.createTimer(ros::Duration(0.001), 
+                                    &cranex7mpc::MPCNodelet::updateControlInput, 
+                                    this);
   joint_efforts_publisher_ 
-      = node_handle_.advertise<std_msgs::Float64MultiArray>("/mpc_arm_controller/command", 10);
+      = node_handle_.advertise<std_msgs::Float64MultiArray>(
+          "/crane_x7/mpc_arm_controller/command", 10);
 }
 
 
-void MPCController::subscribeJointState(
+void MPCNodelet::subscribeJointState(
     const sensor_msgs::JointState& joint_state_msg) {
   q_.coeffRef(0) = joint_state_msg.position[3];
   q_.coeffRef(1) = joint_state_msg.position[4];
@@ -69,9 +74,8 @@ void MPCController::subscribeJointState(
 }
 
 
-void MPCController::updateControlInput(const ros::TimerEvent& time_event) {
-  // const double t = time_event.current_expected().toSec();
-  const double t = 0;
+void MPCNodelet::updateControlInput(const ros::TimerEvent& time_event) {
+  const double t = time_event.current_expected.toSec();
   ROS_INFO("KKT error = %lf", mpc_.KKTError(t, q_, v_));
   mpc_.updateSolution(t, q_, v_);
   mpc_.getControlInput(u_);
@@ -79,9 +83,10 @@ void MPCController::updateControlInput(const ros::TimerEvent& time_event) {
     joint_efforts_.data[i] = u_.coeff(i);
   }
   joint_efforts_publisher_.publish(joint_efforts_);
+  // ROS_INFO("u = [%lf %lf %lf %lf %lf %lf %lf]", u_.coeff(0), u_.coeff(1), u_.coeff(2), u_.coeff(3), u_.coeff(4), u_.coeff(5), u_.coeff(6));
 }
 
 } // namespace crane_x7_mpc 
 
 
-PLUGINLIB_EXPORT_CLASS(cranex7mpc::MPCController, nodelet::Nodelet)
+PLUGINLIB_EXPORT_CLASS(cranex7mpc::MPCNodelet, nodelet::Nodelet)

@@ -148,13 +148,13 @@ target_link_libraries(
   constraints_pdipm
 )
 
-# Build mpc_controller
+# Build mpc_nodelet
 add_library(
-  mpc_controller
-  src/mpc_controller.cpp
+  mpc_nodelet
+  src/mpc_nodelet.cpp
 )
 target_link_libraries(
-  mpc_controller
+  mpc_nodelet
   PRIVATE
   mpc
   idocp
@@ -163,7 +163,7 @@ target_link_libraries(
   ${catkin_LIBRARIES}
 )
 target_include_directories(
-  mpc_controller
+  mpc_nodelet
   PRIVATE
   ${PROJECT_SOURCE_DIR}/include/crane_x7_mpc
   ${catkin_INCLUDE_DIRS}
@@ -174,5 +174,5 @@ target_include_directories(
 )
 
 if(catkin_EXPORTED_LIBRARIES)
-  add_dependencies(mpc_controller ${catkin_EXPORTED_LIBRARIES})
+  add_dependencies(mpc_nodelet ${catkin_EXPORTED_LIBRARIES})
 endif()

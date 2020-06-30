@@ -1,5 +1,5 @@
-#ifndef CRANE_X7_MPC_MPC_CONTROLLER_HPP_
-#define CRANE_X7_MPC_MPC_CONTROLLER_HPP_
+#ifndef CRANE_X7_MPC_MPC_NODELET_HPP_
+#define CRANE_X7_MPC_MPC_NODELET_HPP_
 
 #include <string>
 #include <vector>
@@ -22,9 +22,9 @@
 
 namespace cranex7mpc {
 
-class MPCController : public nodelet::Nodelet {
+class MPCNodelet : public nodelet::Nodelet {
 public:
-  MPCController();
+  MPCNodelet();
   bool setGoalConfiguration(
       crane_x7_mpc::SetGoalConfiguration::Request& request, 
       crane_x7_mpc::SetGoalConfiguration::Response& response);
@@ -43,7 +43,7 @@ private:
 
   static constexpr double T_ = 1;
   static constexpr unsigned int N_ = 25;
-  static constexpr unsigned int num_proc_ = 2;
+  static constexpr unsigned int num_proc_ = 1;
   std::string urdf_path_;
   idocp::Robot robot_;
   idocp::manipulator::CostFunction cost_;
@@ -56,4 +56,4 @@ private:
 } // namespace cranex7mpc
 
 
-#endif // CRANE_X7_MPC_MPC_CONTROLLER_HPP_
+#endif // CRANE_X7_MPC_MPC_NODELET_HPP_
