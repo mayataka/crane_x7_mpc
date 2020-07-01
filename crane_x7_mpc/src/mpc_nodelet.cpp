@@ -7,7 +7,7 @@ namespace cranex7mpc {
 
 MPCNodelet::MPCNodelet() 
   : urdf_path_("/home/sotaro/catkin_ws/src/crane_x7_mpc/crane_x7_mpc/IDOCP/examples/cranex7/crane_x7_description/urdf/crane_x7.urdf"),
-    robot_(urdf_path_),
+    robot_(urdf_path_, Eigen::VectorXd::Constant(7, 1.0e-06)),
     cost_(robot_),
     constraints_(robot_),
     mpc_(robot_, &cost_, &constraints_, T_, N_, num_proc_),
@@ -20,8 +20,6 @@ MPCNodelet::MPCNodelet()
   for (int i=0; i<robot_.dimv(); ++i) {
     joint_efforts_.data.push_back(0);
   }
-  q_ref_.fill(1);
-  cost_.set_q_ref(q_ref_);
 }
 
 
@@ -46,7 +44,7 @@ void MPCNodelet::onInit() {
   joint_state_subscriber_ = node_handle_.subscribe(
       "/crane_x7/joint_states", 10, 
       &cranex7mpc::MPCNodelet::subscribeJointState, this);
-  timer_ = node_handle_.createTimer(ros::Duration(0.001), 
+  timer_ = node_handle_.createTimer(ros::Duration(0.01), 
                                     &cranex7mpc::MPCNodelet::updateControlInput, 
                                     this);
   joint_efforts_publisher_ 
