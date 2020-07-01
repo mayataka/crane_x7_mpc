@@ -6,7 +6,7 @@
 namespace cranex7mpc {
 
 MPCController::MPCController() 
-  : urdf_path_("/home/sotaro/ros1_ws/src/crane_x7_mpc/crane_x7_mpc/IDOCP/examples/cranex7/crane_x7_description/urdf/crane_x7.urdf"),
+  : urdf_path_("/home/sotaro/catkin_ws/src/crane_x7_mpc/crane_x7_mpc/IDOCP/examples/cranex7/crane_x7_description/urdf/crane_x7.urdf"),
     robot_(urdf_path_),
     cost_(robot_),
     constraints_(robot_),
@@ -17,6 +17,7 @@ MPCController::MPCController()
     v_(Eigen::VectorXd::Zero(robot_.dimq())),
     u_(Eigen::VectorXd::Zero(robot_.dimq())),
     q_ref_(Eigen::VectorXd::Zero(robot_.dimq())) {
+  robot_.set_joint_damping(Eigen::VectorXd::Constant(robot_.dimq(), 1.0e-06));
 }
 
 
