@@ -12,6 +12,8 @@
 
 #include "Eigen/Core"
 
+#include "crane_x7_mpc/ControlInputPolicy.h"
+
 
 namespace cranex7mpc {
 
@@ -25,7 +27,8 @@ public:
 
 private:
   void update(const ros::Time& time, const ros::Duration& period) override;
-  void subscribeControlInputPolicy(const sensor_msgs::JointState& joint_state_msg);
+  void subscribeControlInputPolicy(
+      const crane_x7_mpc::ControlInputPolicy& policy);
 
   std::vector<hardware_interface::JointHandle> joint_handlers_;
   ros::NodeHandle node_handle_;

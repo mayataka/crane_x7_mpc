@@ -54,13 +54,13 @@ void StateFeedbackController::stopping(const ros::Time& time) {
 
 void StateFeedbackController::update(const ros::Time& time, 
                                      const ros::Duration& period) { 
-  for (int i=0; i<dimq_; ++i) {
+  for (int i=0; i<dimv_; ++i) {
     q_.coeffRef(i) = joint_handlers_[i].getPosition();
     v_.coeffRef(i) = joint_handlers_[i].getVelocity();
   }
   u_ = u_stn_; 
-  u_.alias() += Kq_ * (q_-q_stn_);
-  u_.alias() += Kv_ * (v_-v_stn_);
+  u_.noalias() += Kq_ * (q_-q_stn_);
+  u_.noalias() += Kv_ * (v_-v_stn_);
   for (int i=0; i<dimv_; ++i) {
     joint_handlers_[i].setCommand(u_.coeff(i));
   }
@@ -68,12 +68,12 @@ void StateFeedbackController::update(const ros::Time& time,
 
 
 void StateFeedbackController::subscribeControlInputPolicy(
-    const sensor_msgs::JointState& joint_state_msg) {
-  q_stn_ = ;
-  v_stn_ = ;
-  u_stn_ = ;
-  Kq_ = ;
-  Kv_ = ;
+    const crane_x7_mpc::ControlInputPolicy& policy) {
+  q_stn_ = Eigen::Map<const Eigen::VectorXd>(policy.q, dimq_);
+  v_stn_ = Eigen::Map<const Eigen::VectorXd>(policy.v, dimv_);
+  u_stn_ = Eigen::Map<const Eigen::VectorXd>(policy.u, dimv_);
+  Kq_ = Eigen::Map<const Eigen::MatrixXd>(policy.Kq, dimv_, dimv_);
+  Kv_ = Eigen::Map<const Eigen::MatrixXd>(policy.Kv, dimv_, dimv_);
 }
 
 } // namespace crane_x7_mpc 

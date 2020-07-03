@@ -17,6 +17,7 @@
 #include "manipulator/cost_function.hpp"
 #include "manipulator/constraints.hpp"
 
+#include "crane_x7_mpc/ControlInputPolicy.h"
 #include "crane_x7_mpc/SetGoalConfiguration.h"
 
 
@@ -31,14 +32,14 @@ public:
 
 private:
   virtual void onInit() override;
-  void subscribeJointState(const sensor_msgs::JointState& joint_state_msg);
-  void updateControlInput(const ros::TimerEvent& time_event);
+  void subscribeJointState(const sensor_msgs::JointState& joint_state);
+  void updateControlInputPolicy(const ros::TimerEvent& time_event);
 
   ros::NodeHandle node_handle_;
   ros::ServiceServer service_server_;
   ros::Subscriber joint_state_subscriber_;
-  ros::Publisher joint_efforts_publisher_;
-  std_msgs::Float64MultiArray joint_efforts_;
+  ros::Publisher control_input_policy_publisher_;
+  crane_x7_mpc::ControlInputPolicy control_input_policy_;
   ros::Timer timer_;
 
   static constexpr double T_ = 1;
@@ -51,6 +52,7 @@ private:
   idocp::MPC mpc_;
   unsigned int dimq_, dimv_;
   Eigen::VectorXd q_, v_, u_, q_ref_;
+  Eigen::MatrixXd Kq_, Kv_;
 };
 
 } // namespace cranex7mpc
