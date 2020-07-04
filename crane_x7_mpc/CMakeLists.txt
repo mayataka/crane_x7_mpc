@@ -8,30 +8,13 @@ find_package(catkin REQUIRED COMPONENTS
   pluginlib
   nodelet
   std_msgs
-  message_generation
+  crane_x7_msgs
 )
-
-add_message_files(
-  FILES
-  ControlInputPolicy.msg
-)
-
-add_service_files(
-  FILES
-  SetGoalConfiguration.srv
-)
-
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-)
-
 
 catkin_package(
   LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS 
   roscpp 
-  message_runtime
   nodelet
 )
 
@@ -170,7 +153,7 @@ target_link_libraries(
 target_include_directories(
   mpc_nodelet
   PRIVATE
-  ${PROJECT_SOURCE_DIR}/include/crane_x7_mpc
+  include/crane_x7_mpc
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
   ${IDOCP_INCLUDE_DIR}

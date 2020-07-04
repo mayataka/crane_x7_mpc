@@ -11,8 +11,8 @@ joint_state_controller:
     - crane_x7_lower_arm_revolute_part_joint
     - crane_x7_wrist_joint
 
-mpc_arm_controller:
-  type: "effort_controllers/JointGroupEffortController"
+arm_controller:
+  type: "crane_x7_mpc/StateFeedbackController"
   publish_rate: 1000
   joints:
     - crane_x7_shoulder_fixed_part_pan_joint
@@ -40,4 +40,3 @@ gripper_controller:
   # for effort_controllers
   gains:
     crane_x7_gripper_finger_a_joint: { p: 100.0, d: 0.0, i: 0.0 }
-

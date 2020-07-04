@@ -5,21 +5,15 @@
 
 namespace cranex7mpc {
 
-StateFeedbackController::StateFeedbackController(const unsigned int dimq, 
-                                                 const unsigned int dimv)
-  : dimq_(dimq),
-    dimv_(dimv),
-    q_stn_(Eigen::VectorXd::Zero(dimq)),
-    v_stn_(Eigen::VectorXd::Zero(dimv)),
-    u_stn_(Eigen::VectorXd::Zero(dimv)),
-    q_(Eigen::VectorXd::Zero(dimq)),
-    v_(Eigen::VectorXd::Zero(dimv)),
-    u_(Eigen::VectorXd::Zero(dimv)),
-    Kq_(Eigen::MatrixXd::Zero(dimv, dimv)),
-    Kv_(Eigen::MatrixXd::Zero(dimv, dimv)) {
-  control_input_policy_subscriber_ = node_handle_.subscribe(
-      "/crane_x7/mpc_nodelet/control_input_policy", 10, 
-      &cranex7mpc::StateFeedbackController::subscribeControlInputPolicy, this);
+StateFeedbackController::StateFeedbackController()
+  : q_stn_(Eigen::VectorXd::Zero(dimq_)),
+    v_stn_(Eigen::VectorXd::Zero(dimv_)),
+    u_stn_(Eigen::VectorXd::Zero(dimv_)),
+    q_(Eigen::VectorXd::Zero(dimq_)),
+    v_(Eigen::VectorXd::Zero(dimv_)),
+    u_(Eigen::VectorXd::Zero(dimv_)),
+    Kq_(Eigen::MatrixXd::Zero(dimv_, dimv_)),
+    Kv_(Eigen::MatrixXd::Zero(dimv_, dimv_)) {
 }
 
 
@@ -40,6 +34,9 @@ bool StateFeedbackController::init(
   for (const auto& joint_name : joint_names) {
     joint_handlers_.push_back(hardware->getHandle(joint_name));
   }
+  control_input_policy_subscriber_ = node_handle.subscribe(
+      "/crane_x7/mpc_nodelet/control_input_policy", 10, 
+      &cranex7mpc::StateFeedbackController::subscribeControlInputPolicy, this);
   return true;
 }
 
@@ -68,12 +65,12 @@ void StateFeedbackController::update(const ros::Time& time,
 
 
 void StateFeedbackController::subscribeControlInputPolicy(
-    const crane_x7_mpc::ControlInputPolicy& policy) {
-  q_stn_ = Eigen::Map<const Eigen::VectorXd>(policy.q, dimq_);
-  v_stn_ = Eigen::Map<const Eigen::VectorXd>(policy.v, dimv_);
-  u_stn_ = Eigen::Map<const Eigen::VectorXd>(policy.u, dimv_);
-  Kq_ = Eigen::Map<const Eigen::MatrixXd>(policy.Kq, dimv_, dimv_);
-  Kv_ = Eigen::Map<const Eigen::MatrixXd>(policy.Kv, dimv_, dimv_);
+    const crane_x7_msgs::ControlInputPolicy& policy) {
+  q_stn_ = Eigen::Map<const Eigen::VectorXd>(&(policy.q[0]), dimq_);
+  v_stn_ = Eigen::Map<const Eigen::VectorXd>(&(policy.v[0]), dimq_);
+  u_stn_ = Eigen::Map<const Eigen::VectorXd>(&(policy.u[0]), dimq_);
+  Kq_ = Eigen::Map<const Eigen::MatrixXd>(&(policy.Kq[0]), dimv_, dimv_);
+  Kv_ = Eigen::Map<const Eigen::MatrixXd>(&(policy.Kv[0]), dimv_, dimv_);
 }
 
 } // namespace crane_x7_mpc 

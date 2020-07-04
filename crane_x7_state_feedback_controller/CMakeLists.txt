@@ -7,29 +7,29 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   controller_interface
   hardware_interface
-  std_msgs
-  sensor_msgs
+  crane_x7_msgs
 )
 
 catkin_package(
   LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS 
-  controller_interface 
   roscpp 
-  sensor_msgs 
-  std_msgs
+  controller_interface 
 )
 
 find_package(Eigen3 REQUIRED)
 
 add_library(
   state_feedback_controller
-  ${PROJECT_SOURCE_DIR}/src/state_feedback_controller.cpp
+  src/state_feedback_controller.cpp
 )
+
 target_include_directories(
   state_feedback_controller
   PRIVATE
-  ${PROJECT_SOURCE_DIR}/include/crane_x7_state_feedback_controller
+  include/crane_x7_state_feedback_controller
+  ${EIGEN3_INCLUDE_DIR}
+  ${catkin_INCLUDE_DIRS}
 )
 
 if(catkin_EXPORTED_LIBRARIES)

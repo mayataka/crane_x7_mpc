@@ -17,8 +17,8 @@
 #include "manipulator/cost_function.hpp"
 #include "manipulator/constraints.hpp"
 
-#include "crane_x7_mpc/ControlInputPolicy.h"
-#include "crane_x7_mpc/SetGoalConfiguration.h"
+#include "crane_x7_msgs/ControlInputPolicy.h"
+#include "crane_x7_msgs/SetGoalConfiguration.h"
 
 
 namespace cranex7mpc {
@@ -27,8 +27,8 @@ class MPCNodelet : public nodelet::Nodelet {
 public:
   MPCNodelet();
   bool setGoalConfiguration(
-      crane_x7_mpc::SetGoalConfiguration::Request& request, 
-      crane_x7_mpc::SetGoalConfiguration::Response& response);
+      crane_x7_msgs::SetGoalConfiguration::Request& request, 
+      crane_x7_msgs::SetGoalConfiguration::Response& response);
 
 private:
   virtual void onInit() override;
@@ -39,7 +39,7 @@ private:
   ros::ServiceServer service_server_;
   ros::Subscriber joint_state_subscriber_;
   ros::Publisher control_input_policy_publisher_;
-  crane_x7_mpc::ControlInputPolicy control_input_policy_;
+  crane_x7_msgs::ControlInputPolicy policy_;
   ros::Timer timer_;
 
   static constexpr double T_ = 1;
