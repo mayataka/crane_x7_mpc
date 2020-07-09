@@ -27,7 +27,6 @@ private:
   void update(const ros::Time& time, const ros::Duration& period) override;
   void subscribeControlInputPolicy(
       const crane_x7_msgs::ControlInputPolicy& policy);
-
   std::vector<hardware_interface::JointHandle> joint_handlers_;
   ros::Subscriber control_input_policy_subscriber_;
 

@@ -20,7 +20,10 @@ MPCNodelet::MPCNodelet()
     Kq_(Eigen::MatrixXd::Zero(robot_.dimv(), robot_.dimv())),
     Kv_(Eigen::MatrixXd::Zero(robot_.dimv(), robot_.dimv())) {
   robot_.setJointDamping(Eigen::VectorXd::Constant(robot_.dimv(), 1.0e-06));
-  cost_.set_a_weight(Eigen::VectorXd::Constant(robot_.dimv(), 0.1));
+  Eigen::VectorXd q_ref = Eigen::VectorXd::Zero(robot_.dimv());
+  q_ref.coeffRef(3) = - 1.57;
+  cost_.set_q_ref(q_ref);
+  // cost_.set_a_weight(Eigen::VectorXd::Constant(robot_.dimv(), 0.1));
   mpc_ = idocp::MPC(robot_, &cost_, &constraints_, T_, N_, num_proc_);
 }
 
@@ -76,10 +79,18 @@ void MPCNodelet::subscribeJointState(
 
 void MPCNodelet::updateControlInputPolicy(const ros::TimerEvent& time_event) {
   const double t = time_event.current_expected.toSec();
-  ROS_INFO("KKT error = %lf", mpc_.KKTError(t, q_, v_));
-  mpc_.updateSolution(t, q_, v_);
-  mpc_.getControlInput(u_);
-  mpc_.getStateFeedbackGain(Kq_, Kv_);
+  const double KKT_error = mpc_.KKTError(t, q_, v_);
+  ROS_INFO("KKT error = %lf", KKT_error);
+  if (std::isnan(KKT_error)) {
+    u_.setZero();
+    Kq_.setZero();
+    Kv_.setZero();
+  }
+  else {
+    mpc_.updateSolution(t, q_, v_);
+    mpc_.getControlInput(u_);
+    mpc_.getStateFeedbackGain(Kq_, Kv_);
+  }
   Eigen::Map<Eigen::VectorXd>(&(policy_.q[0]), dimq_) = q_;
   Eigen::Map<Eigen::VectorXd>(&(policy_.v[0]), dimv_) = v_;
   Eigen::Map<Eigen::VectorXd>(&(policy_.u[0]), dimv_) = u_;
