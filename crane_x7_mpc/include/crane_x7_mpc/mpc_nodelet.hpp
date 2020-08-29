@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 #include "pinocchio/fwd.hpp" // To avoid bug in BOOST_MPL_LIMIT_LIST_SIZE
 #include "ros/ros.h"
@@ -12,20 +13,18 @@
 
 #include "Eigen/Core"
 
-#include "ocp/mpc.hpp"
-#include "robot/robot.hpp"
-#include "manipulator/cost_function.hpp"
-#include "manipulator/constraints.hpp"
+#include "idocp/idocp.hpp"
 
 #include "crane_x7_msgs/ControlInputPolicy.h"
 #include "crane_x7_msgs/SetGoalConfiguration.h"
 
 
-namespace cranex7mpc {
+namespace crane_x7_mpc {
 
 class MPCNodelet : public nodelet::Nodelet {
 public:
   MPCNodelet();
+
   bool setGoalConfiguration(
       crane_x7_msgs::SetGoalConfiguration::Request& request, 
       crane_x7_msgs::SetGoalConfiguration::Response& response);
@@ -42,20 +41,27 @@ private:
   crane_x7_msgs::ControlInputPolicy policy_;
   ros::Timer timer_;
 
-  static constexpr double T_ = 1;
-  static constexpr unsigned int N_ = 25;
-  static constexpr unsigned int num_proc_ = 1;
-  std::string urdf_path_;
   idocp::Robot robot_;
-  idocp::manipulator::CostFunction cost_;
-  idocp::manipulator::Constraints constraints_;
-  idocp::MPC mpc_;
-  unsigned int dimq_, dimv_;
-  Eigen::VectorXd q_, v_, u_, q_ref_;
+  idocp::MPC<idocp::OCP> mpc_;
+  std::shared_ptr<idocp::CostFunction> cost_;
+  std::shared_ptr<idocp::JointSpaceCost> joint_space_cost_;
+  std::shared_ptr<idocp::Constraints> constraints_;
+  std::shared_ptr<idocp::JointPositionLowerLimit> joint_position_lower_limit_;
+  std::shared_ptr<idocp::JointPositionUpperLimit> joint_position_upper_limit_;
+  std::shared_ptr<idocp::JointVelocityLowerLimit> joint_velocity_lower_limit_;
+  std::shared_ptr<idocp::JointVelocityUpperLimit> joint_velocity_upper_limit_;
+  std::shared_ptr<idocp::JointTorquesLowerLimit> joint_torques_lower_limit_;
+  std::shared_ptr<idocp::JointTorquesUpperLimit> joint_torques_upper_limit_;
+  double horizon_length_;
+  int horizon_discretization_steps_, num_procs_;
+
+  static constexpr int kDimq = 7;
+  Eigen::Matrix<double, kDimq, 1> q_, v_, q_ref_;
+  Eigen::VectorXd u_;
   Eigen::MatrixXd Kq_, Kv_;
 };
 
-} // namespace cranex7mpc
+} // namespace crane_x7_mpc
 
 
 #endif // CRANE_X7_MPC_MPC_NODELET_HPP_

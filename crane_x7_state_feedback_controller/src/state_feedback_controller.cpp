@@ -3,17 +3,25 @@
 #include "pluginlib/class_list_macros.h"
 
 
-namespace cranex7mpc {
+namespace crane_x7_mpc {
 
 StateFeedbackController::StateFeedbackController()
-  : q_stn_(Eigen::VectorXd::Zero(dimq_)),
-    v_stn_(Eigen::VectorXd::Zero(dimv_)),
-    u_stn_(Eigen::VectorXd::Zero(dimv_)),
-    q_(Eigen::VectorXd::Zero(dimq_)),
-    v_(Eigen::VectorXd::Zero(dimv_)),
-    u_(Eigen::VectorXd::Zero(dimv_)),
-    Kq_(Eigen::MatrixXd::Zero(dimv_, dimv_)),
-    Kv_(Eigen::MatrixXd::Zero(dimv_, dimv_)) {
+  : q_stn_(),
+    v_stn_(),
+    u_stn_(),
+    q_(),
+    v_(),
+    u_(),
+    Kq_(),
+    Kv_() {
+  q_stn_.setZero();
+  v_stn_.setZero();
+  u_stn_.setZero();
+  q_.setZero();
+  v_.setZero();
+  u_.setZero();
+  Kq_.setZero();
+  Kv_.setZero();
 }
 
 
@@ -36,7 +44,7 @@ bool StateFeedbackController::init(
   }
   control_input_policy_subscriber_ = node_handle.subscribe(
       "/crane_x7/mpc_nodelet/control_input_policy", 10, 
-      &cranex7mpc::StateFeedbackController::subscribeControlInputPolicy, this);
+      &crane_x7_mpc::StateFeedbackController::subscribeControlInputPolicy, this);
   return true;
 }
 
@@ -51,14 +59,14 @@ void StateFeedbackController::stopping(const ros::Time& time) {
 
 void StateFeedbackController::update(const ros::Time& time, 
                                      const ros::Duration& period) { 
-  for (int i=0; i<dimv_; ++i) {
+  for (int i=0; i<kDimq; ++i) {
     q_.coeffRef(i) = joint_handlers_[i].getPosition();
     v_.coeffRef(i) = joint_handlers_[i].getVelocity();
   }
   u_ = u_stn_; 
   u_.noalias() += Kq_ * (q_-q_stn_);
   u_.noalias() += Kv_ * (v_-v_stn_);
-  for (int i=0; i<dimv_; ++i) {
+  for (int i=0; i<kDimq; ++i) {
     joint_handlers_[i].setCommand(u_.coeff(i));
   }
 }
@@ -66,15 +74,15 @@ void StateFeedbackController::update(const ros::Time& time,
 
 void StateFeedbackController::subscribeControlInputPolicy(
     const crane_x7_msgs::ControlInputPolicy& policy) {
-  q_stn_ = Eigen::Map<const Eigen::VectorXd>(&(policy.q[0]), dimq_);
-  v_stn_ = Eigen::Map<const Eigen::VectorXd>(&(policy.v[0]), dimq_);
-  u_stn_ = Eigen::Map<const Eigen::VectorXd>(&(policy.u[0]), dimq_);
-  Kq_ = Eigen::Map<const Eigen::MatrixXd>(&(policy.Kq[0]), dimv_, dimv_);
-  Kv_ = Eigen::Map<const Eigen::MatrixXd>(&(policy.Kv[0]), dimv_, dimv_);
+  q_stn_ = Eigen::Map<const Eigen::Matrix<double, kDimq, 1>>(&policy.q[0]);
+  v_stn_ = Eigen::Map<const Eigen::Matrix<double, kDimq, 1>>(&policy.v[0]);
+  u_stn_ = Eigen::Map<const Eigen::Matrix<double, kDimq, 1>>(&policy.u[0]);
+  Kq_ = Eigen::Map<const Eigen::Matrix<double, kDimq, kDimq>>(&policy.Kq[0]);
+  Kv_ = Eigen::Map<const Eigen::Matrix<double, kDimq, kDimq>>(&policy.Kv[0]);
 }
 
 } // namespace crane_x7_mpc 
 
 
-PLUGINLIB_EXPORT_CLASS(cranex7mpc::StateFeedbackController, 
+PLUGINLIB_EXPORT_CLASS(crane_x7_mpc::StateFeedbackController, 
                        controller_interface::ControllerBase)

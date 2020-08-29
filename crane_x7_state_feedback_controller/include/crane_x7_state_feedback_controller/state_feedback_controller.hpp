@@ -13,7 +13,7 @@
 #include "crane_x7_msgs/ControlInputPolicy.h"
 
 
-namespace cranex7mpc {
+namespace crane_x7_mpc {
 
 class StateFeedbackController : public controller_interface::Controller<hardware_interface::EffortJointInterface> {
 public:
@@ -30,13 +30,12 @@ private:
   std::vector<hardware_interface::JointHandle> joint_handlers_;
   ros::Subscriber control_input_policy_subscriber_;
 
-  static constexpr unsigned int dimq_ = 7;
-  static constexpr unsigned int dimv_ = 7;
-  Eigen::VectorXd q_stn_, v_stn_, u_stn_, q_, v_, u_;
-  Eigen::MatrixXd Kq_, Kv_;
+  static constexpr int kDimq = 7;
+  Eigen::Matrix<double, kDimq, 1> q_stn_, v_stn_, u_stn_, q_, v_, u_;
+  Eigen::Matrix<double, kDimq, kDimq> Kq_, Kv_;
 };
 
-} // namespace cranex7mpc
+} // namespace crane_x7_mpc
 
 
 #endif // CRANE_X7_MPC_STATE_FEEDBACK_CONTROLLER_HPP_

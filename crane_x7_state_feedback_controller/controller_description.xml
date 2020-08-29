@@ -1,5 +1,5 @@
 <library path="lib/libstate_feedback_controller">
-  <class name="crane_x7_mpc/StateFeedbackController" type="cranex7mpc::StateFeedbackController"
+  <class name="crane_x7_mpc/StateFeedbackController" type="crane_x7_mpc::StateFeedbackController"
    base_class_type="controller_interface::ControllerBase">
 <description>
 </description>

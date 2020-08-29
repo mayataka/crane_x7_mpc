@@ -6,7 +6,7 @@
 
   <maintainer email="katayama.25w@st.kyoto-u.ac.jp">Sotaro Katayama</maintainer>
 
-  <license>TODO</license>
+  <license>BSD-3 clause</license>
 
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>controller_interface</build_depend>
