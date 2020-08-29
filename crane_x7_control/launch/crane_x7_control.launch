@@ -14,7 +14,8 @@
       <param name="num_worker_threads" value="1"/>
     </node>
     <node pkg="nodelet" type="nodelet" name="mpc_nodelet"
-          args="load crane_x7_mpc/mpc_nodelet nodelet_manager" >
+          args="load crane_x7_mpc/mpc_nodelet nodelet_manager
+                _path_to_urdf:=$(find crane_x7_description)/urdf/crane_x7_for_mpc.urdf" >
     </node>    
     <node name="crane_x7_control" pkg="crane_x7_control" type="crane_x7_control" output="screen" respawn="false"/>
 
