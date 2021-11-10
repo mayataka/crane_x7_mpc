@@ -8,8 +8,6 @@ find_package(robotoc REQUIRED)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  pluginlib
-  nodelet
   std_msgs
   crane_x7_msgs
 )
@@ -18,21 +16,21 @@ catkin_package(
   LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS 
   roscpp 
-  nodelet
 )
 
-add_library(
-  mpc_nodelet
-  src/mpc_nodelet.cpp
+add_executable(
+  ${PROJECT_NAME}
+  src/mpc.cpp
+  src/mpc_node.cpp
 )
 target_link_libraries(
-  mpc_nodelet
+  ${PROJECT_NAME}
   PUBLIC
   robotoc::robotoc
   ${catkin_LIBRARIES}
 )
 target_include_directories(
-  mpc_nodelet
+  ${PROJECT_NAME}
   PUBLIC
   include/crane_x7_mpc
   ${ROBOTOC_INCLUDE_DIR}
@@ -40,6 +38,18 @@ target_include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-if(catkin_EXPORTED_LIBRARIES)
-  add_dependencies(mpc_nodelet ${catkin_EXPORTED_LIBRARIES})
-endif()
+install(TARGETS ${PROJECT_NAME}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.hpp"
+  PATTERN ".svn" EXCLUDE
+)
+
+foreach(dir config launch)
+  install(DIRECTORY ${dir}/ 
+    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/${dir}
+  )
+endforeach(dir)
