@@ -157,7 +157,6 @@ bool CONTROL_SETTING::loadJointParam( void )
             joint_list[jj].home = load_home;
             joint_list[jj].eff_cnst = load_eff_cnst;
             joint_list[jj].mode = load_mode;
-            ROS_INFO("joint: %s, eff_cnst: %lf", key_jname.c_str(), joint_list[jj].eff_cnst);
         }else{
             result = false;
             break;

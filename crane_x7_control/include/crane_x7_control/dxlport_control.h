@@ -64,6 +64,7 @@ public:
     void                set_param_vol_limit( uint8_t dxl_id, int max, int min );
     void                set_param_current_limit( uint8_t dxl_id, int val );
     void                set_param_vel_gain( uint8_t dxl_id, int p, int i );
+    void                set_param_pos_gain_all( int p, int i, int d );
     void                set_param_pos_gain( uint8_t dxl_id, int p, int i, int d );
 
     bool                is_change_positions( void );
@@ -78,7 +79,7 @@ private:
     dynamixel::PacketHandler                   *packetHandler;
     dynamixel::PortHandler                     *portHandler;
     hardware_interface::JointStateInterface     joint_stat_if;
-    hardware_interface::EffortJointInterface  joint_pos_if;
+    hardware_interface::PositionJointInterface  joint_pos_if;
     hardware_interface::EffortJointInterface    joint_eff_if;
     joint_limits_interface::PositionJointSoftLimitsInterface joint_limits_if;
     dynamixel::GroupBulkRead                   *readTempGroup;

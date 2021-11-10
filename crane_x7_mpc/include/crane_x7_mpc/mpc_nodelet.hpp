@@ -38,7 +38,7 @@ public:
   TimeVaryingTaskSpace3DRef() 
     : TimeVaryingTaskSpace3DRefBase() {
     pos0_ << 0.3, 0, 0.3;
-    radius_ = 0.1;
+    radius_ = 0.15;
     is_active_ = false;
   }
 

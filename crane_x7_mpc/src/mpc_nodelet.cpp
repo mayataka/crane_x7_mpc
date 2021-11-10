@@ -11,7 +11,7 @@ MPCNodelet::MPCNodelet()
   : ocp_solver_(),
     N_(20), 
     nthreads_(4), 
-    niter_(2),
+    niter_(3),
     T_(0.5), 
     dt_(T_/N_),
     robot_(),
@@ -45,7 +45,6 @@ MPCNodelet::MPCNodelet()
 bool MPCNodelet::setGoalConfiguration(
     crane_x7_msgs::SetGoalConfiguration::Request& request, 
     crane_x7_msgs::SetGoalConfiguration::Response& response) {
-  ROS_INFO("set goal configuration!!");
   qj_ref_ = Eigen::Map<Eigen::Matrix<double, kDimq, 1>>(&(request.goal_configuration[0]));
   config_cost_->set_q_ref(qj_ref_);
   response.success = true;
@@ -97,27 +96,19 @@ void MPCNodelet::onInit() {
 
 void MPCNodelet::subscribeJointState(
     const sensor_msgs::JointState& joint_state) {
-  q_.coeffRef(0) = joint_state.position[3];
-  q_.coeffRef(1) = joint_state.position[4];
-  q_.coeffRef(2) = joint_state.position[6];
-  q_.coeffRef(3) = joint_state.position[5];
-  q_.coeffRef(4) = joint_state.position[1];
-  q_.coeffRef(5) = joint_state.position[2];
-  q_.coeffRef(6) = joint_state.position[7];
-  v_.coeffRef(0) = joint_state.velocity[3];
-  v_.coeffRef(1) = joint_state.velocity[4];
-  v_.coeffRef(2) = joint_state.velocity[6];
-  v_.coeffRef(3) = joint_state.velocity[5];
-  v_.coeffRef(4) = joint_state.velocity[1];
-  v_.coeffRef(5) = joint_state.velocity[2];
-  v_.coeffRef(6) = joint_state.velocity[7];
+  for (int i=0; i<7; ++i) {
+    q_.coeffRef(i) = joint_state.position[i];
+  }
+  for (int i=0; i<7; ++i) {
+    v_.coeffRef(i) = joint_state.velocity[i];
+  }
 }
 
 
 void MPCNodelet::updatePolicy(const ros::TimerEvent& time_event) {
   const double t = time_event.current_expected.toSec();
   const double kkt_error = ocp_solver_.KKTError();
-  // ROS_INFO("KKT error = %lf", kkt_error);
+  ROS_INFO("KKT error = %lf", kkt_error);
   if (std::isnan(kkt_error)) {
     u_.setZero();
     Kq_.setZero();
@@ -130,8 +121,10 @@ void MPCNodelet::updatePolicy(const ros::TimerEvent& time_event) {
     u_ = ocp_solver_.getSolution(0).u;
     ocp_solver_.getStateFeedbackGain(0, Kq_, Kv_);
   }
-  Eigen::Map<Eigen::Matrix<double, kDimq, 1>>(&(control_input_policy_.q[0])) = q_;
-  Eigen::Map<Eigen::Matrix<double, kDimq, 1>>(&(control_input_policy_.v[0])) = v_;
+  const double dt = 0.0025; // publish rate
+  const Eigen::VectorXd& a_opt = ocp_solver_.getSolution(0).a;
+  Eigen::Map<Eigen::Matrix<double, kDimq, 1>>(&(control_input_policy_.q[0])) = q_ + dt * v_ + (dt*dt) * a_opt;
+  Eigen::Map<Eigen::Matrix<double, kDimq, 1>>(&(control_input_policy_.v[0])) = v_ + dt * a_opt;
   Eigen::Map<Eigen::Matrix<double, kDimq, 1>>(&(control_input_policy_.u[0])) = u_;
   Eigen::Map<Eigen::Matrix<double, kDimq, kDimq>>(&(control_input_policy_.Kq[0])) = Kq_;
   Eigen::Map<Eigen::Matrix<double, kDimq, kDimq>>(&(control_input_policy_.Kv[0])) = Kv_;
@@ -145,12 +138,12 @@ void MPCNodelet::updatePolicy(const ros::TimerEvent& time_event) {
 void MPCNodelet::create_cost() {
   cost_ = std::make_shared<robotoc::CostFunction>();
   config_cost_ = std::make_shared<robotoc::ConfigurationSpaceCost>(robot_);
-  const double q_weight = 0.001;
-  const double v_weight = 0.01;
-  const double a_weight = 0.001;
+  const double q_weight = 0.01;
+  const double v_weight = 0.1;
+  const double a_weight = 0.01;
   const double u_weight = 0;
-  const double qf_weight = 0.001;
-  const double vf_weight = 0.01;
+  const double qf_weight = 0.01;
+  const double vf_weight = 0.1;
   config_cost_->set_q_weight(Eigen::VectorXd::Constant(robot_.dimv(), q_weight));
   config_cost_->set_v_weight(Eigen::VectorXd::Constant(robot_.dimv(), v_weight));
   config_cost_->set_a_weight(Eigen::VectorXd::Constant(robot_.dimv(), a_weight));
@@ -163,21 +156,25 @@ void MPCNodelet::create_cost() {
   const double task_3d_qf_weight = 10;
   task_cost_3d_->set_q_weight(Eigen::Vector3d::Constant(task_3d_q_weight));
   task_cost_3d_->set_qf_weight(Eigen::Vector3d::Constant(task_3d_qf_weight));
-  const double task_6d_q_weight = 10;
-  const double task_6d_qf_weight = 10;
+  const double task_6d_q_trans_weight = 10;
+  const double task_6d_q_rot_weight = 1;
+  const double task_6d_qf_trans_weight = 10;
+  const double task_6d_qf_rot_weight = 1;
   ref_6d_ = std::make_shared<TimeVaryingTaskSpace6DRef>();
   task_cost_6d_ = std::make_shared<robotoc::TimeVaryingTaskSpace6DCost>(robot_, end_effector_frame_, ref_6d_);
-  task_cost_6d_->set_q_weight(Eigen::Vector3d::Constant(task_6d_q_weight), 
-                              Eigen::Vector3d::Constant(task_6d_q_weight));
-  task_cost_6d_->set_qf_weight(Eigen::Vector3d::Constant(task_6d_qf_weight), 
-                               Eigen::Vector3d::Constant(task_6d_qf_weight));
+  task_cost_6d_->set_q_weight(Eigen::Vector3d::Constant(task_6d_q_trans_weight), 
+                              Eigen::Vector3d::Constant(task_6d_q_rot_weight));
+  task_cost_6d_->set_qf_weight(Eigen::Vector3d::Constant(task_6d_qf_trans_weight), 
+                               Eigen::Vector3d::Constant(task_6d_qf_rot_weight));
   cost_->push_back(config_cost_);
   cost_->push_back(task_cost_3d_);
   cost_->push_back(task_cost_6d_);
 
-  // ref_3d_->deactivate();
-  // ref_6d_->deactivate();
+  ref_3d_->deactivate();
+  ref_6d_->deactivate();
+
   ref_3d_->activate();
+  // ref_6d_->activate(); // this doe not work well 
 }
 
 
