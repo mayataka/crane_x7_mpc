@@ -78,7 +78,7 @@ private:
     dynamixel::PacketHandler                   *packetHandler;
     dynamixel::PortHandler                     *portHandler;
     hardware_interface::JointStateInterface     joint_stat_if;
-    hardware_interface::PositionJointInterface  joint_pos_if;
+    hardware_interface::EffortJointInterface  joint_pos_if;
     hardware_interface::EffortJointInterface    joint_eff_if;
     joint_limits_interface::PositionJointSoftLimitsInterface joint_limits_if;
     dynamixel::GroupBulkRead                   *readTempGroup;

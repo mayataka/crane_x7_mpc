@@ -117,7 +117,7 @@ void MPCNodelet::subscribeJointState(
 void MPCNodelet::updatePolicy(const ros::TimerEvent& time_event) {
   const double t = time_event.current_expected.toSec();
   const double kkt_error = ocp_solver_.KKTError();
-  ROS_INFO("KKT error = %lf", kkt_error);
+  // ROS_INFO("KKT error = %lf", kkt_error);
   if (std::isnan(kkt_error)) {
     u_.setZero();
     Kq_.setZero();
