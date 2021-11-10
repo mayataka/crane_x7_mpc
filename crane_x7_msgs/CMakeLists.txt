@@ -17,6 +17,7 @@ generate_dynamic_reconfigure_options(
 add_message_files(
   FILES
   ControlInputPolicy.msg
+  JointPositionCommand.msg
 )
 
 add_service_files(

@@ -4,10 +4,7 @@ project(crane_x7_mpc)
 set(CMAKE_CXX_STANDARD 11)
 
 find_package(Eigen3 REQUIRED)
-find_package(idocp REQUIRED)
-find_package(PkgConfig)
-pkg_check_modules(PINOCCHIO REQUIRED pinocchio)
-link_directories(${PINOCCHIO_LIBDIR})
+find_package(robotoc REQUIRED)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -31,14 +28,14 @@ add_library(
 target_link_libraries(
   mpc_nodelet
   PUBLIC
-  idocp::idocp
+  robotoc::robotoc
   ${catkin_LIBRARIES}
 )
 target_include_directories(
   mpc_nodelet
   PUBLIC
   include/crane_x7_mpc
-  ${IDOCP_INCLUDE_DIR}
+  ${ROBOTOC_INCLUDE_DIR}
   ${EIGEN3_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
 )
