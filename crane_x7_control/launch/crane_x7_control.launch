@@ -2,6 +2,7 @@
   <!-- USB port name for dynamixel_port -->
   <arg name="port" default="/dev/ttyUSB0" />
 
+  <arg name="use_effort_gripper" default="false" />
   <param name="robot_description"
     command="$(find xacro)/xacro --inorder '$(find crane_x7_description)/urdf/crane_x7.urdf.xacro'"
     />
@@ -9,21 +10,27 @@
     <rosparam file="$(find crane_x7_control)/config/crane_x7_control.yaml" command="load"/>
     <param name="dynamixel_port/port_name" value="$(arg port)"/>
 
-    <node name="crane_x7_control" pkg="crane_x7_control" type="crane_x7_control" output="screen" respawn="false">
+    <node pkg="nodelet" type="nodelet" name="nodelet_manager" args="manager" output="screen">
+      <param name="num_worker_threads" value="1"/>
+    </node>
+    <node pkg="nodelet" type="nodelet" name="mpc_nodelet"
+          args="load crane_x7_mpc/mpc_nodelet nodelet_manager
+                _path_to_urdf:=$(find crane_x7_description)/urdf/crane_x7_for_mpc.urdf" >
+    </node>    
+    <node name="crane_x7_control" pkg="crane_x7_control" type="crane_x7_control" output="screen" respawn="false"/>
 
     <node name="controller_manager"
         pkg="controller_manager"
         type="spawner" respawn="false"
         output="screen"
         args="joint_state_controller
-              mpc_arm_controller
-              gripper_controller
-              robot_state_publisher"/>
+              arm_controller
+              gripper_controller">
     </node>
 
     <node name="robot_state_publisher" pkg="robot_state_publisher" 
         type="robot_state_publisher" respawn="false" output="screen">
-      <remap from="/joint_states" to="/crane_x7/joint_states" />
+      <remap from="/joint_states" to="/crane_x7/joint_states"/>
     </node>
   </group>
 </launch>

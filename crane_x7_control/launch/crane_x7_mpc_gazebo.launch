@@ -6,12 +6,12 @@
   <group ns="/crane_x7">
     <rosparam file="$(find crane_x7_control)/config/crane_x7_gazebo_mpc.yaml" command="load"/>
     <param if="$(arg use_effort_gripper)" name="gripper_controller/type" value="effort_controllers/GripperActionController" />
-mpc_nodelet
-    <node pkg="nodelet" type="nodelet" name="nodelet_manager" args="manager" output="screen">
+  <node pkg="nodelet" type="nodelet" name="nodelet_manager" args="manager" output="screen">
     <param name="num_worker_threads" value="1"/>
   </node>
   <node pkg="nodelet" type="nodelet" name="mpc_nodelet"
-        args="load crane_x7_mpc/mpc_nodelet nodelet_manager" >
+        args="load crane_x7_mpc/mpc_nodelet nodelet_manager
+              _path_to_urdf:=$(find crane_x7_description)/urdf/crane_x7_for_mpc.urdf" >
   </node>    
 
     <!-- <node name="controller_manager" -->
@@ -21,7 +21,7 @@ mpc_nodelet
           respawn="false"
           output="screen"
           args="joint_state_controller
-                mpc_arm_controller
+                arm_controller
                 gripper_controller"/>
     <rosparam file="$(find crane_x7_control)/config/crane_x7_gazebo_control.yaml" command="load" />
   </group>
