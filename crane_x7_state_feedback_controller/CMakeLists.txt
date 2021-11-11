@@ -30,6 +30,7 @@ target_include_directories(
   include/crane_x7_state_feedback_controller
   ${EIGEN3_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
+  ${CRANE_X7_MSGS_INCLUDE_DIR}
 )
 
 if(catkin_EXPORTED_LIBRARIES)

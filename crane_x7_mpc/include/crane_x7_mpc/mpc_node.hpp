@@ -19,7 +19,11 @@ namespace crane_x7_mpc {
 
 class MPCNode {
 public:
-  MPCNode(ros::NodeHandle& node_handle);
+
+  using Vector7d = Eigen::Matrix<double, 7, 1>;
+  using Matrix7d = Eigen::Matrix<double, 7, 7>;
+
+  MPCNode(ros::NodeHandle node_handle);
 
   void init(const std::string& path_to_urdf);
 
@@ -29,18 +33,18 @@ private:
   void subscribeJointState(const sensor_msgs::JointState& joint_state);
   void updatePolicy(const ros::TimerEvent& time_event);
 
+  // MPC solver 
+  MPC mpc_;
+  int niter_;
+  double dt_;
+  Eigen::VectorXd q_, v_, q_mpc_, v_mpc_, qj_ref_, u_;
+  Eigen::MatrixXd Kq_, Kv_;
+
   ros::NodeHandle node_handle_;
   ros::Subscriber joint_state_subscriber_;
   ros::Publisher control_input_policy_publisher_;
   crane_x7_msgs::ControlInputPolicy control_input_policy_;
   ros::Timer timer_;
-
-  // MPC solver 
-  MPC mpc_;
-  int niter_;
-  double dt_;
-  Eigen::VectorXd q_, v_, qj_ref_, u_;
-  Eigen::MatrixXd Kq_, Kv_;
 };
 
 } // namespace crane_x7_mpc

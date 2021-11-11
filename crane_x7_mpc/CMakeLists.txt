@@ -36,6 +36,7 @@ target_include_directories(
   ${ROBOTOC_INCLUDE_DIR}
   ${EIGEN3_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
+  ${CRANE_X7_MSGS_INCLUDE_DIR}
 )
 
 install(TARGETS ${PROJECT_NAME}

@@ -11,9 +11,9 @@
     <param name="dynamixel_port/port_name" value="$(arg port)"/>
 
     <node name="crane_x7_mpc" pkg="crane_x7_mpc" type="crane_x7_mpc" 
-          args="load crane_x7_mpc/mpc_nodelet nodelet_manager
-                _path_to_urdf:=$(find crane_x7_description)/urdf/crane_x7_for_mpc.urdf" 
+          args="_path_to_urdf:=$(find crane_x7_description)/urdf/crane_x7_for_mpc.urdf"
           output="screen" respawn="false"/>
+
     <node name="crane_x7_control" pkg="crane_x7_control" type="crane_x7_control" output="screen" respawn="false"/>
 
     <node name="controller_manager"

@@ -9,7 +9,7 @@ MPC::MPC()
     nthreads_(2), 
     niter_(3),
     T_(0.5), 
-    dt_(T_/N_),
+    barrier_(1.0e-03),
     kkt_error_(0),
     robot_(),
     end_effector_frame_(26),
@@ -25,43 +25,30 @@ MPC::MPC()
     joint_velocity_lower_limit_(),
     joint_velocity_upper_limit_(),
     joint_torques_lower_limit_(),
-    joint_torques_upper_limit_(),
-    q_(),
-    v_(),
-    u_(Eigen::VectorXd::Zero(kDimq)),
-    qj_ref_(), 
-    Kq_(Eigen::MatrixXd::Zero(kDimq, kDimq)),
-    Kv_(Eigen::MatrixXd::Zero(kDimq, kDimq)) {
-  q_.setZero();
-  v_.setZero();
-  u_.setZero();
-  qj_ref_.setZero();
+    joint_torques_upper_limit_() {
 }
 
 
 
 void MPC::init(const std::string& path_to_urdf, const double t, 
                const Eigen::VectorXd& q, const Eigen::VectorXd& v) {
+  robot_ = robotoc::Robot(path_to_urdf);
   create_cost();
   create_constraints();
-  robot_ = robotoc::Robot(path_to_urdf);
   T_ = 0.5;
   N_ = 20;
   nthreads_ = 2;
   ocp_solver_ = robotoc::UnconstrOCPSolver(robot_, cost_, constraints_, 
                                            T_, N_, nthreads_);
   // init OCP solver
-  ocp_solver_.setSolution("q", q_);
-  ocp_solver_.setSolution("v", v_);
+  ocp_solver_.setSolution("q", q);
+  ocp_solver_.setSolution("v", v);
   ocp_solver_.initConstraints();
 }
 
 
 void MPC::updatePolicy(const double t, const Eigen::VectorXd& q, 
                        const Eigen::VectorXd& v, const int niter) {
-  const int num_iteration = 10;
-  ocp_solver_.setSolution("q", q_);
-  ocp_solver_.setSolution("v", v_);
   ocp_solver_.initConstraints();
   for (int i=0; i<niter; ++i) {
     ocp_solver_.updateSolution(t, q, v);
@@ -70,9 +57,8 @@ void MPC::updatePolicy(const double t, const Eigen::VectorXd& q,
 }
 
 
-void MPC::getPolicy(Eigen::VectorXd& u, 
-                    const Eigen::VectorXd& Kq, 
-                    const Eigen::VectorXd& Kv) const {
+void MPC::getPolicy(Eigen::VectorXd& u, Eigen::MatrixXd& Kq, 
+                    Eigen::MatrixXd& Kv) const {
   if (std::isnan(kkt_error_)) {
     u.setZero();
     Kq.setZero();

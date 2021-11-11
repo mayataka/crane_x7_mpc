@@ -114,9 +114,7 @@ public:
   void updatePolicy(const double t, const Eigen::VectorXd& q, 
                     const Eigen::VectorXd& v, const int niter);
 
-  void getPolicy(Eigen::VectorXd& u, 
-                 const Eigen::VectorXd& Kq, 
-                 const Eigen::VectorXd& Kv) const;
+  void getPolicy(Eigen::VectorXd& u, Eigen::MatrixXd& Kq, Eigen::MatrixXd& Kv) const;
 
   const Eigen::VectorXd& get_q_opt(const int stage) const;
   const Eigen::VectorXd& get_v_opt(const int stage) const;
@@ -129,7 +127,7 @@ private:
   // OCP solver 
   robotoc::UnconstrOCPSolver ocp_solver_;
   int N_, nthreads_, niter_; 
-  double T_, dt_, barrier_, kkt_error_;
+  double T_, barrier_, kkt_error_;
   robotoc::Robot robot_;
   // Cost function
   int end_effector_frame_;
