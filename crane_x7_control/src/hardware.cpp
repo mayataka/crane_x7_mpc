@@ -18,7 +18,8 @@
 #define     CONTROL_WAIT_HZ   (50)
 #define     CONTROL_ACTIVE_HZ (200)
 #else
-#define     CONTROL_HZ   (200)
+#define     CONTROL_HZ   (1000)
+// #define     CONTROL_HZ   (200)
 #endif
 
 static std_msgs::String             lasterror_out;
