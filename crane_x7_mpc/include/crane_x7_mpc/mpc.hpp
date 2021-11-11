@@ -1,15 +1,11 @@
-#ifndef CRANE_X7_MPC_MPC_NODELET_HPP_
-#define CRANE_X7_MPC_MPC_NODELET_HPP_
+#ifndef CRANE_X7_MPC_MPC_HPP_
+#define CRANE_X7_MPC_MPC_HPP_
 
 #include <string>
 #include <vector>
 #include <memory>
 
 #include "pinocchio/fwd.hpp" // To avoid bug in BOOST_MPL_LIMIT_LIST_SIZE
-#include "ros/ros.h"
-#include "nodelet/nodelet.h"
-#include "std_msgs/Float64MultiArray.h"
-#include "sensor_msgs/JointState.h"
 
 #include "Eigen/Core"
 
@@ -25,10 +21,6 @@
 #include "robotoc/constraints/joint_velocity_upper_limit.hpp"
 #include "robotoc/constraints/joint_torques_lower_limit.hpp"
 #include "robotoc/constraints/joint_torques_upper_limit.hpp"
-
-#include "crane_x7_msgs/ControlInputPolicy.h"
-#include "crane_x7_msgs/JointPositionCommand.h"
-#include "crane_x7_msgs/SetGoalConfiguration.h"
 
 
 namespace crane_x7_mpc {
@@ -112,31 +104,30 @@ private:
 };
 
 
-class MPCNodelet : public nodelet::Nodelet {
+class MPC {
 public:
-  MPCNodelet();
+  MPC();
 
-  bool setGoalConfiguration(
-      crane_x7_msgs::SetGoalConfiguration::Request& request, 
-      crane_x7_msgs::SetGoalConfiguration::Response& response);
+  void init(const std::string& path_to_urdf, const double t, 
+            const Eigen::VectorXd& q, const Eigen::VectorXd& v);
+
+  void updatePolicy(const double t, const Eigen::VectorXd& q, 
+                    const Eigen::VectorXd& v, const int niter);
+
+  void getPolicy(Eigen::VectorXd& u, Eigen::MatrixXd& Kq, Eigen::MatrixXd& Kv) const;
+
+  const Eigen::VectorXd& get_q_opt(const int stage) const;
+  const Eigen::VectorXd& get_v_opt(const int stage) const;
+  const Eigen::VectorXd& get_a_opt(const int stage) const;
+  const Eigen::VectorXd& get_u_opt(const int stage) const;
+
+  double KKTError() const;
 
 private:
-  virtual void onInit() override;
-  void subscribeJointState(const sensor_msgs::JointState& joint_state);
-  void updatePolicy(const ros::TimerEvent& time_event);
-
-  ros::NodeHandle node_handle_;
-  ros::ServiceServer service_server_;
-  ros::Subscriber joint_state_subscriber_;
-  ros::Publisher policy_publisher_, position_command_publisher_;
-  crane_x7_msgs::ControlInputPolicy control_input_policy_;
-  crane_x7_msgs::JointPositionCommand joint_position_command_;
-  ros::Timer timer_;
-
   // OCP solver 
   robotoc::UnconstrOCPSolver ocp_solver_;
   int N_, nthreads_, niter_; 
-  double T_, dt_, barrier_;
+  double T_, barrier_, kkt_error_;
   robotoc::Robot robot_;
   // Cost function
   int end_effector_frame_;
@@ -155,15 +146,10 @@ private:
   std::shared_ptr<robotoc::JointTorquesLowerLimit> joint_torques_lower_limit_;
   std::shared_ptr<robotoc::JointTorquesUpperLimit> joint_torques_upper_limit_;
 
-  static constexpr int kDimq = 7;
-  Eigen::Matrix<double, kDimq, 1> q_, v_, qj_ref_;
-  Eigen::VectorXd u_;
-  Eigen::MatrixXd Kq_, Kv_;
-
   void create_cost();
   void create_constraints();
 };
 
 } // namespace crane_x7_mpc
 
-#endif // CRANE_X7_MPC_MPC_NODELET_HPP_
+#endif // CRANE_X7_MPC_MPC_HPP_ 

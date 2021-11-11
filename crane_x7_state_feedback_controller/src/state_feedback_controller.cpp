@@ -43,7 +43,7 @@ bool StateFeedbackController::init(
     joint_handlers_.push_back(hardware->getHandle(joint_name));
   }
   control_input_policy_subscriber_ = node_handle.subscribe(
-      "/crane_x7/mpc_nodelet/control_input_policy", 10, 
+      "/crane_x7/crane_x7_mpc/control_input_policy", 10, 
       &crane_x7_mpc::StateFeedbackController::subscribeControlInputPolicy, this);
   return true;
 }

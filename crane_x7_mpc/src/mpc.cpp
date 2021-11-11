@@ -1,19 +1,16 @@
-#include "mpc_nodelet.hpp"
-
-#include "pluginlib/class_list_macros.h"
-
-#include <chrono>
+#include "mpc.hpp"
 
 
 namespace crane_x7_mpc {
 
-MPCNodelet::MPCNodelet() 
+MPC::MPC() 
   : ocp_solver_(),
     N_(20), 
-    nthreads_(4), 
+    nthreads_(2), 
     niter_(3),
     T_(0.5), 
-    dt_(T_/N_),
+    barrier_(1.0e-03),
+    kkt_error_(0),
     robot_(),
     end_effector_frame_(26),
     cost_(),
@@ -28,48 +25,13 @@ MPCNodelet::MPCNodelet()
     joint_velocity_lower_limit_(),
     joint_velocity_upper_limit_(),
     joint_torques_lower_limit_(),
-    joint_torques_upper_limit_(),
-    q_(),
-    v_(),
-    u_(Eigen::VectorXd::Zero(kDimq)),
-    qj_ref_(), 
-    Kq_(Eigen::MatrixXd::Zero(kDimq, kDimq)),
-    Kv_(Eigen::MatrixXd::Zero(kDimq, kDimq)) {
-  q_.setZero();
-  v_.setZero();
-  u_.setZero();
-  qj_ref_.setZero();
+    joint_torques_upper_limit_() {
 }
 
 
-bool MPCNodelet::setGoalConfiguration(
-    crane_x7_msgs::SetGoalConfiguration::Request& request, 
-    crane_x7_msgs::SetGoalConfiguration::Response& response) {
-  qj_ref_ = Eigen::Map<Eigen::Matrix<double, kDimq, 1>>(&(request.goal_configuration[0]));
-  config_cost_->set_q_ref(qj_ref_);
-  response.success = true;
-  return true;
-}
 
-
-void MPCNodelet::onInit() {
-  node_handle_ = getNodeHandle();
-  service_server_ = node_handle_.advertiseService(
-      "/crane_x7/mpc_nodelet/set_goal_configuration", 
-      &crane_x7_mpc::MPCNodelet::setGoalConfiguration, this);
-  joint_state_subscriber_ = node_handle_.subscribe(
-      "/crane_x7/joint_states", 10, 
-      &crane_x7_mpc::MPCNodelet::subscribeJointState, this);
-  timer_ = node_handle_.createTimer(
-      ros::Duration(0.0025), 
-      &crane_x7_mpc::MPCNodelet::updatePolicy, this);
-  policy_publisher_ = node_handle_.advertise<crane_x7_msgs::ControlInputPolicy>(
-          "/crane_x7/mpc_nodelet/control_input_policy", 10);
-  position_command_publisher_ = node_handle_.advertise<crane_x7_msgs::JointPositionCommand>(
-          "/crane_x7/mpc_nodelet/joint_position_command", 10);
-
-  std::string path_to_urdf;
-  getPrivateNodeHandle().getParam("path_to_urdf", path_to_urdf);
+void MPC::init(const std::string& path_to_urdf, const double t, 
+               const Eigen::VectorXd& q, const Eigen::VectorXd& v) {
   robot_ = robotoc::Robot(path_to_urdf);
   create_cost();
   create_constraints();
@@ -79,63 +41,62 @@ void MPCNodelet::onInit() {
   ocp_solver_ = robotoc::UnconstrOCPSolver(robot_, cost_, constraints_, 
                                            T_, N_, nthreads_);
   // init OCP solver
-  const int num_iteration = 10;
-  ocp_solver_.setSolution("q", q_);
-  ocp_solver_.setSolution("v", v_);
+  ocp_solver_.setSolution("q", q);
+  ocp_solver_.setSolution("v", v);
   ocp_solver_.initConstraints();
-  const auto t_cl = std::chrono::system_clock::now();
-  const double t = 1e-06 * std::chrono::duration_cast<std::chrono::microseconds>(
-      t_cl.time_since_epoch()).count();
-  if (num_iteration > 0) {
-    for (int i=0; i<num_iteration; ++i) {
-      ocp_solver_.updateSolution(t, q_, v_);
-    }
-  }
 }
 
 
-void MPCNodelet::subscribeJointState(
-    const sensor_msgs::JointState& joint_state) {
-  for (int i=0; i<7; ++i) {
-    q_.coeffRef(i) = joint_state.position[i];
+void MPC::updatePolicy(const double t, const Eigen::VectorXd& q, 
+                       const Eigen::VectorXd& v, const int niter) {
+  ocp_solver_.initConstraints();
+  for (int i=0; i<niter; ++i) {
+    ocp_solver_.updateSolution(t, q, v);
   }
-  for (int i=0; i<7; ++i) {
-    v_.coeffRef(i) = joint_state.velocity[i];
-  }
+  kkt_error_ = ocp_solver_.KKTError();
 }
 
 
-void MPCNodelet::updatePolicy(const ros::TimerEvent& time_event) {
-  const double t = time_event.current_expected.toSec();
-  const double kkt_error = ocp_solver_.KKTError();
-  ROS_INFO("KKT error = %lf", kkt_error);
-  if (std::isnan(kkt_error)) {
-    u_.setZero();
-    Kq_.setZero();
-    Kv_.setZero();
+void MPC::getPolicy(Eigen::VectorXd& u, Eigen::MatrixXd& Kq, 
+                    Eigen::MatrixXd& Kv) const {
+  if (std::isnan(kkt_error_)) {
+    u.setZero();
+    Kq.setZero();
+    Kv.setZero();
   }
   else {
-    for (int i=0; i<niter_; ++i) {
-      ocp_solver_.updateSolution(t, q_, v_);
-    }
-    u_ = ocp_solver_.getSolution(0).u;
-    ocp_solver_.getStateFeedbackGain(0, Kq_, Kv_);
+    u = ocp_solver_.getSolution(0).u;
+    ocp_solver_.getStateFeedbackGain(0, Kq, Kv);
   }
-  const double dt = 0.0025; // publish rate
-  const Eigen::VectorXd& a_opt = ocp_solver_.getSolution(0).a;
-  Eigen::Map<Eigen::Matrix<double, kDimq, 1>>(&(control_input_policy_.q[0])) = q_ + dt * v_ + (dt*dt) * a_opt;
-  Eigen::Map<Eigen::Matrix<double, kDimq, 1>>(&(control_input_policy_.v[0])) = v_ + dt * a_opt;
-  Eigen::Map<Eigen::Matrix<double, kDimq, 1>>(&(control_input_policy_.u[0])) = u_;
-  Eigen::Map<Eigen::Matrix<double, kDimq, kDimq>>(&(control_input_policy_.Kq[0])) = Kq_;
-  Eigen::Map<Eigen::Matrix<double, kDimq, kDimq>>(&(control_input_policy_.Kv[0])) = Kv_;
-  policy_publisher_.publish(control_input_policy_);
-  Eigen::Map<Eigen::Matrix<double, kDimq, 1>>(&(joint_position_command_.q[0])) 
-      = ocp_solver_.getSolution(2).q;
-  position_command_publisher_.publish(joint_position_command_);
 }
 
 
-void MPCNodelet::create_cost() {
+const Eigen::VectorXd& MPC::get_q_opt(const int stage) const {
+  return ocp_solver_.getSolution(stage).q;
+}
+
+
+const Eigen::VectorXd& MPC::get_v_opt(const int stage) const {
+  return ocp_solver_.getSolution(stage).v;
+}
+
+
+const Eigen::VectorXd& MPC::get_a_opt(const int stage) const {
+  return ocp_solver_.getSolution(stage).a;
+}
+
+
+const Eigen::VectorXd& MPC::get_u_opt(const int stage) const {
+  return ocp_solver_.getSolution(stage).u;
+}
+
+
+double MPC::KKTError() const {
+  return kkt_error_;
+}
+
+
+void MPC::create_cost() {
   cost_ = std::make_shared<robotoc::CostFunction>();
   config_cost_ = std::make_shared<robotoc::ConfigurationSpaceCost>(robot_);
   const double q_weight = 0.01;
@@ -178,7 +139,7 @@ void MPCNodelet::create_cost() {
 }
 
 
-void MPCNodelet::create_constraints() {
+void MPC::create_constraints() {
   constraints_                = std::make_shared<robotoc::Constraints>();
   joint_position_lower_limit_ = std::make_shared<robotoc::JointPositionLowerLimit>(robot_);
   joint_position_upper_limit_ = std::make_shared<robotoc::JointPositionUpperLimit>(robot_);
@@ -195,6 +156,3 @@ void MPCNodelet::create_constraints() {
 }
 
 } // namespace crane_x7_mpc 
-
-
-PLUGINLIB_EXPORT_CLASS(crane_x7_mpc::MPCNodelet, nodelet::Nodelet)

@@ -10,13 +10,10 @@
     <rosparam file="$(find crane_x7_control)/config/crane_x7_control.yaml" command="load"/>
     <param name="dynamixel_port/port_name" value="$(arg port)"/>
 
-    <node pkg="nodelet" type="nodelet" name="nodelet_manager" args="manager" output="screen">
-      <param name="num_worker_threads" value="1"/>
-    </node>
-    <node pkg="nodelet" type="nodelet" name="mpc_nodelet"
-          args="load crane_x7_mpc/mpc_nodelet nodelet_manager
-                _path_to_urdf:=$(find crane_x7_description)/urdf/crane_x7_for_mpc.urdf" >
-    </node>    
+    <node name="crane_x7_mpc" pkg="crane_x7_mpc" type="crane_x7_mpc" 
+          args="_path_to_urdf:=$(find crane_x7_description)/urdf/crane_x7_for_mpc.urdf"
+          output="screen" respawn="false"/>
+
     <node name="crane_x7_control" pkg="crane_x7_control" type="crane_x7_control" output="screen" respawn="false"/>
 
     <node name="controller_manager"
