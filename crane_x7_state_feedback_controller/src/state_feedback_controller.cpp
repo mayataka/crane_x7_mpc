@@ -66,6 +66,7 @@ void StateFeedbackController::update(const ros::Time& time,
   u_ = u_stn_; 
   u_.noalias() += Kq_ * (q_-q_stn_);
   u_.noalias() += Kv_ * (v_-v_stn_);
+  // u_.setZero();
   for (int i=0; i<kDimq; ++i) {
     joint_handlers_[i].setCommand(u_.coeff(i));
   }

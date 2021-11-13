@@ -29,8 +29,8 @@ class TimeVaryingTaskSpace3DRef final : public robotoc::TimeVaryingTaskSpace3DRe
 public:
   TimeVaryingTaskSpace3DRef() 
     : TimeVaryingTaskSpace3DRefBase() {
-    pos0_ << 0.3, 0, 0.3;
-    radius_ = 0.15;
+    pos0_ << 0.15, 0, 0.3;
+    radius_ = 0.1;
     is_active_ = false;
   }
 
@@ -38,8 +38,8 @@ public:
 
   void update_q_3d_ref(const double t, Eigen::VectorXd& q_3d_ref) const override {
     q_3d_ref = pos0_;
-    q_3d_ref.coeffRef(1) += radius_ * sin(M_PI*t);
-    q_3d_ref.coeffRef(2) += radius_ * cos(M_PI*t);
+    q_3d_ref.coeffRef(1) += radius_ * sin(0.5*M_PI*t);
+    q_3d_ref.coeffRef(2) += radius_ * cos(0.5*M_PI*t);
   }
 
   bool isActive(const double t) const override {
@@ -69,7 +69,7 @@ public:
     rotm_  <<  0, 0, 1, 
                0, 1, 0,
               -1, 0, 0;
-    pos0_ << 0.3, 0, 0.3;
+    pos0_ << 0.15, 0, 0.3;
     radius_ = 0.1;
     is_active_ = false;
   }
@@ -78,8 +78,8 @@ public:
 
   void update_SE3_ref(const double t, pinocchio::SE3& SE3_ref) const override {
     Eigen::Vector3d pos(pos0_);
-    pos.coeffRef(1) += radius_ * sin(M_PI*t);
-    pos.coeffRef(2) += radius_ * cos(M_PI*t);
+    pos.coeffRef(1) += radius_ * sin(0.5*M_PI*t);
+    pos.coeffRef(2) += radius_ * cos(0.5*M_PI*t);
     SE3_ref = pinocchio::SE3(rotm_, pos);
   }
 
@@ -137,6 +137,7 @@ private:
   std::shared_ptr<robotoc::TimeVaryingTaskSpace6DCost> task_cost_6d_;
   std::shared_ptr<TimeVaryingTaskSpace3DRef> ref_3d_;
   std::shared_ptr<TimeVaryingTaskSpace6DRef> ref_6d_;
+  Eigen::VectorXd q_ref_;
   // Constraints
   std::shared_ptr<robotoc::Constraints> constraints_;
   std::shared_ptr<robotoc::JointPositionLowerLimit> joint_position_lower_limit_;

@@ -19,6 +19,7 @@ MPC::MPC()
     task_cost_6d_(),
     ref_3d_(),
     ref_6d_(),
+    q_ref_(Eigen::VectorXd::Zero(7)),
     constraints_(),
     joint_position_lower_limit_(),
     joint_position_upper_limit_(),
@@ -26,13 +27,15 @@ MPC::MPC()
     joint_velocity_upper_limit_(),
     joint_torques_lower_limit_(),
     joint_torques_upper_limit_() {
+  q_ref_ << 0., 0.3979, 0., -2.1994, 0.0563, 0.4817, 0.;
 }
-
 
 
 void MPC::init(const std::string& path_to_urdf, const double t, 
                const Eigen::VectorXd& q, const Eigen::VectorXd& v) {
   robot_ = robotoc::Robot(path_to_urdf);
+  robot_.setJointEffortLimit(Eigen::VectorXd::Constant(7, 2.0));
+  robot_.setJointVelocityLimit(Eigen::VectorXd::Constant(7, 1.0));
   create_cost();
   create_constraints();
   T_ = 0.5;
@@ -99,12 +102,13 @@ double MPC::KKTError() const {
 void MPC::create_cost() {
   cost_ = std::make_shared<robotoc::CostFunction>();
   config_cost_ = std::make_shared<robotoc::ConfigurationSpaceCost>(robot_);
-  const double q_weight = 0.01;
+  const double q_weight = 1.0;
   const double v_weight = 0.1;
-  const double a_weight = 0.01;
+  const double a_weight = 0.1;
   const double u_weight = 0;
-  const double qf_weight = 0.01;
+  const double qf_weight = 1.0;
   const double vf_weight = 0.1;
+  config_cost_->set_q_ref(q_ref_);
   config_cost_->set_q_weight(Eigen::VectorXd::Constant(robot_.dimv(), q_weight));
   config_cost_->set_v_weight(Eigen::VectorXd::Constant(robot_.dimv(), v_weight));
   config_cost_->set_a_weight(Eigen::VectorXd::Constant(robot_.dimv(), a_weight));
@@ -134,7 +138,7 @@ void MPC::create_cost() {
   ref_3d_->deactivate();
   ref_6d_->deactivate();
 
-  ref_3d_->activate();
+  // ref_3d_->activate();
   // ref_6d_->activate(); // this doe not work well 
 }
 

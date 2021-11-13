@@ -44,12 +44,29 @@ double MPCNode::dt() const {
 
 
 void MPCNode::subscribeJointState(const sensor_msgs::JointState& joint_state) {
-  for (int i=0; i<7; ++i) {
-    q_.coeffRef(i) = joint_state.position[i];
-  }
-  for (int i=0; i<7; ++i) {
-    v_.coeffRef(i) = joint_state.velocity[i];
-  }
+  // This is for the actual robot
+  q_.coeffRef(0) = joint_state.position[3];
+  q_.coeffRef(1) = joint_state.position[4];
+  q_.coeffRef(2) = joint_state.position[6];
+  q_.coeffRef(3) = joint_state.position[5];
+  q_.coeffRef(4) = joint_state.position[1];
+  q_.coeffRef(5) = joint_state.position[2];
+  q_.coeffRef(6) = joint_state.position[7];
+  v_.coeffRef(0) = joint_state.velocity[3];
+  v_.coeffRef(1) = joint_state.velocity[4];
+  v_.coeffRef(2) = joint_state.velocity[6];
+  v_.coeffRef(3) = joint_state.velocity[5];
+  v_.coeffRef(4) = joint_state.velocity[1];
+  v_.coeffRef(5) = joint_state.velocity[2];
+  v_.coeffRef(6) = joint_state.velocity[7];
+
+  // // This is for Gazebo simulation
+  // for (int i=0; i<7; ++i) {
+  //   q_.coeffRef(i) = joint_state.position[i];
+  // }
+  // for (int i=0; i<7; ++i) {
+  //   v_.coeffRef(i) = joint_state.velocity[i];
+  // }
 }
 
 
